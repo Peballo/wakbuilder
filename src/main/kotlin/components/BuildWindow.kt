@@ -30,12 +30,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ResultRow
 
 fun checkLevelInput(levelLabel: String): Int {
@@ -49,27 +54,63 @@ fun checkLevelInput(levelLabel: String): Int {
     }
 }
 
+fun rarityColors(rarity: Int): Color {
+    return when (rarity) {
+        1 -> Color(255,255,255) // Common
+        2 -> Color(54,196,54) // Rare
+        3 -> Color(221,127,19) // Mythic
+        4 -> Color(255, 239, 100) // Legend
+        5 -> Color(197, 112, 239) // Relic
+        6 -> Color(34, 209, 205) // Souvenir
+        7 -> Color(255, 152, 207) // Epic
+        else -> Color(40,20,180) // Antique
+    }
+
+}
+
 @Composable
 fun EquipmentCell(item: ResultRow, color: Color) {
+    val nameColor: Color = rarityColors(item[Equipments.rarity])
+
     Column (
-        modifier = Modifier.background(Color(150, 190,250), RoundedCornerShape(8.dp)).padding(8.dp)
+        modifier = Modifier.background(Color(171, 214, 250), RoundedCornerShape(8.dp))
     ) {
         // Name of the item
-        Text(item[Equipments.name_es], fontWeight = FontWeight.SemiBold)
+        Text(item[Equipments.name_es], style = TextStyle(shadow = Shadow(Color.Black, blurRadius = 2f)), fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = nameColor)
 
         // Item sprite, level, type and rarity
         Row (
 
         ) {
             Box (
-                modifier = Modifier.padding(8.dp).background(color, RoundedCornerShape(8.dp))
+                modifier = Modifier.padding(8.dp).background(Color(150, 190,250), RoundedCornerShape(8.dp))
             ) {
                 AsyncImage (model = "https://vertylo.github.io/wakassets/items/${item[Equipments.sprite_id]}.png", contentDescription = "item sprite")
             }
 
+            Column (
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("Nivel 200", fontSize = 16.sp)
+
+                Row (
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AsyncImage(
+                        modifier = Modifier.size(20.dp),
+                        model = "https://tmktahu.github.io/WakfuAssets/itemTypes/${item[Equipments.item_type]}.png",
+                        contentDescription = "type"
+                    )
+                    AsyncImage(
+                        modifier = Modifier.size(20.dp),
+                        model = "https://vertylo.github.io/wakassets/rarities/${item[Equipments.rarity]}.png",
+                        contentDescription = "rarity"
+                    )
+                }
+            }
         }
     }
-
 }
 
 @Composable
@@ -87,6 +128,37 @@ fun BuildWindow() {
     var actionPoints by remember { mutableStateOf(6) }
     var movementPoints by remember { mutableStateOf(3) }
     var wakfuPoints by remember { mutableStateOf(6) }
+    var fireAttack by remember { mutableStateOf(9999) }
+    var fireRessis by remember { mutableStateOf(9999) }
+    var airAttack by remember { mutableStateOf(9999) }
+    var airRessis by remember { mutableStateOf(9999) }
+    var earthAttack by remember { mutableStateOf(9999) }
+    var earthRessis by remember { mutableStateOf(9999) }
+    var waterAttack by remember { mutableStateOf(9999) }
+    var waterRessis by remember { mutableStateOf(9999) }
+    var dominioMelee by remember { mutableStateOf(9999) }
+    var dominioDistancia by remember { mutableStateOf(9999) }
+    var dominioCritico by remember { mutableStateOf(9999) }
+    var dominioEspalda by remember { mutableStateOf(9999) }
+    var dominioBerserk by remember { mutableStateOf(9999) }
+    var dominioCuras by remember { mutableStateOf(9999) }
+    var armaduraDada by remember { mutableStateOf(9999) }
+    var armaduraRecibida by remember { mutableStateOf(9999) }
+    var resistenciaCritica by remember { mutableStateOf(9999) }
+    var resitenciaEspalda by remember { mutableStateOf(9999) }
+    var dañoInfligido by remember { mutableStateOf(15) }
+    var probabilidadCritica by remember { mutableStateOf(50) }
+    var curasRealizadas by remember { mutableStateOf(25) }
+    var anticipacion by remember { mutableStateOf(50) }
+    var iniciativa by remember { mutableStateOf(50) }
+    var prospeccion by remember { mutableStateOf(50) }
+    var sabiduria by remember { mutableStateOf(50) }
+    var alcance by remember { mutableStateOf(2) }
+    var placaje by remember { mutableStateOf(50) }
+    var esquiva by remember { mutableStateOf(50) }
+    var control by remember { mutableStateOf(50) }
+    var voluntad by remember { mutableStateOf(50) }
+
 
     // Item pool
     var itemPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
@@ -130,7 +202,7 @@ fun BuildWindow() {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Column (
-                        modifier = Modifier.width(60.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
+                        modifier = Modifier.weight(1f).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -150,7 +222,7 @@ fun BuildWindow() {
                     }
 
                     Column (
-                        modifier = Modifier.width(60.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
+                        modifier = Modifier.weight(1f).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -170,7 +242,7 @@ fun BuildWindow() {
                     }
 
                     Column (
-                        modifier = Modifier.width(60.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
+                        modifier = Modifier.weight(1f).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -190,7 +262,7 @@ fun BuildWindow() {
                     }
 
                     Column (
-                        modifier = Modifier.width(60.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
+                        modifier = Modifier.weight(1f).background(color = statPillColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -207,6 +279,640 @@ fun BuildWindow() {
                         }
 
                         Text("$wakfuPoints", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                //Dominios y resistencias elementales
+                Row (
+                    modifier = Modifier.padding(10.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column (
+                        modifier = Modifier.weight(1f).padding(10.dp)
+                    ) {
+                        //Dominio y resi Fuego
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box {
+                                AsyncImage(
+                                    modifier = Modifier.size(20.dp),
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/fire_coin.png",
+                                    contentDescription = "fire dmg"
+                                )
+                            }
+
+                            Text("$fireAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+
+                            Box {
+                                AsyncImage(
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/block.png",
+                                    contentDescription = "fire resi"
+                                )
+                            }
+                            Text("$fireRessis(99%)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Dominio y resi Aire
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box {
+                                AsyncImage(
+                                    modifier = Modifier.size(20.dp),
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/air_coin.png",
+                                    contentDescription = "air dmg"
+                                )
+                            }
+
+                            Text("$airAttack(99%)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+
+                            Box {
+                                AsyncImage(
+
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/block.png",
+                                    contentDescription = "air reis"
+                                )
+                            }
+                            Text("$airRessis(99%)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Column (
+                        modifier = Modifier.weight(1f).padding(10.dp)
+                    ) {
+                        //Dominio y resi
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box {
+                                AsyncImage(
+                                    modifier = Modifier.size(20.dp),
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/earth_coin.png",
+                                    contentDescription = "earth dmg"
+                                )
+                            }
+
+                            Text("$earthAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+
+                            Box {
+                                AsyncImage(
+
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/block.png",
+                                    contentDescription = "earth resi"
+                                )
+                            }
+                            Text("$earthRessis(99%)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        //Dominio y resi Agua
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box {
+                                AsyncImage(
+                                    modifier = Modifier.size(20.dp),
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/water_coin.png",
+                                    contentDescription = "water dmg"
+                                )
+                            }
+
+                            Text("$waterAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+
+                            Box {
+                                AsyncImage(
+
+                                    model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/block.png",
+                                    contentDescription = "water resis"
+                                )
+                            }
+                            Text("$waterRessis(99%)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                //Dominios y resistencias secundarias
+                Row (
+                    modifier = Modifier.padding(10.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column (
+                        modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/melee_mastery.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("D. Melee", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$dominioMelee", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Criticos
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/critical_mastery.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("D. Critico", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$dominioCritico", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/rear_mastery.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("D. Espalda", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$dominioEspalda", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/healing_mastery.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("D. Curas", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$dominioCuras", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/armor_given.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Ar. Dada", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$armaduraDada", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Column (
+                        modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/distance_mastery.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("D. Distancia", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$dominioDistancia", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/critical_resistance.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("R. Critica", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$resistenciaCritica", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/rear_resistance.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("R. Espalda", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$resitenciaEspalda", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/berserk_mastery.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("D. Berserk", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$dominioBerserk", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/armor_received.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Ar. Recibida", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$armaduraRecibida", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                //Estadisticas de combate
+                Row (
+                    modifier = Modifier.padding(10.dp).background(color = statPillColor, shape = RoundedCornerShape(10.dp)),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column (
+                        modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        //Daño infligido
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/damage_inflicted.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Daño Inf.", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$dañoInfligido%", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Prob. Critica
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/critical_hit.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Golpe Crit.", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$probabilidadCritica%", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        //Iniciativa
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/initiative.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("Iniciativa", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$iniciativa", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Esquiva
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/dodge.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Esquiva", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$esquiva", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Sabiduria
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/wisdom.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Sabiduria", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$sabiduria", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        //Control (de momento)
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/control.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Control", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$control", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Column (
+                        modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/heals_performed.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("Cura Reali.", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$curasRealizadas%", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/block.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("Anticipacion", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$anticipacion%", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Alcance
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/range.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("Alcance", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$alcance", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        //Placaje
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/lock.png",
+                                        contentDescription = "fire resi"
+                                    )
+                                }
+                                Text("Placaje", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+                            Text("$placaje", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                        //Prospeccion
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/prospecting.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Prospeccion", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$prospeccion", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+
+                        //Voluntad
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box {
+                                    AsyncImage(
+                                        modifier = Modifier.size(20.dp),
+                                        model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/force_of_will.png",
+                                        contentDescription = "fire dmg"
+                                    )
+                                }
+                                Text("Voluntad", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
+
+                            Text("$voluntad", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
