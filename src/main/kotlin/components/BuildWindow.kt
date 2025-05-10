@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ResultRow
+import parseEffect
 
 fun checkLevelInput(levelLabel: String): Int {
     // Check if levelLabel has any symbol that isn't a number
@@ -68,56 +70,102 @@ fun rarityColors(rarity: Int): Color {
 
 }
 
+
 @Composable
 fun EquipmentCell(item: ResultRow, color: Color) {
+    val efr: EffectsRepository = EffectsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+
     val nameColor: Color = rarityColors(item[Equipments.rarity])
 
-    Column (
-        modifier = Modifier.background(Color(171, 214, 250), RoundedCornerShape(8.dp))
+    var effects: List<ResultRow> = emptyList()
+
+    var parsedEffects: List<String> = emptyList()
+
+    for ( effect in item[Equipments.effects]) {
+        var e = efr.getEffectById(effect)
+
+        if (e != null) {
+            effects = effects.plus(e)
+        }
+    }
+
+    if (effects.isNotEmpty()) {
+        effects.sortedBy {
+            it[Effects.action]
+        }
+
+        for (ef in effects) {
+            parsedEffects = parsedEffects.plus(parseEffect(ef, item[Equipments.level]))
+        }
+    }
+
+    Button(
+        modifier = Modifier.fillMaxSize(),
+        colors = ButtonDefaults.buttonColors(Color(171, 214, 250)),
+        shape = RoundedCornerShape(8.dp),
+        onClick = {}
     ) {
-        // Name of the item
-        Text(item[Equipments.name_es], style = TextStyle(shadow = Shadow(Color.Black, blurRadius = 2f)), fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = nameColor)
-
-        // Item sprite, level, type and rarity
-        Row (
-
+        Column (
+            modifier = Modifier.fillMaxSize()
         ) {
-            Box (
-                modifier = Modifier.padding(8.dp).background(Color(150, 190,250), RoundedCornerShape(8.dp))
+            // Name of the item
+            Text(item[Equipments.name_es], fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = nameColor)
+
+            // Item sprite, level, type and rarity
+            Row (
+                modifier = Modifier.fillMaxWidth()
             ) {
-                AsyncImage (model = "https://vertylo.github.io/wakassets/items/${item[Equipments.sprite_id]}.png", contentDescription = "item sprite")
+                Box (
+                    modifier = Modifier.padding(8.dp).background(Color(150, 190,250), RoundedCornerShape(8.dp))
+                ) {
+                    AsyncImage (
+                        model = "https://vertylo.github.io/wakassets/items/${item[Equipments.sprite_id]}.png",
+                        contentDescription = "item sprite"
+                    )
+                }
+
+                Column (
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("Nivel ${item[Equipments.level]}", fontSize = 16.sp)
+
+                    Row (
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AsyncImage(
+                            modifier = Modifier.size(20.dp),
+                            model = "https://tmktahu.github.io/WakfuAssets/itemTypes/${item[Equipments.item_type]}.png",
+                            contentDescription = "type"
+                        )
+                        AsyncImage(
+                            modifier = Modifier.size(20.dp),
+                            model = "https://vertylo.github.io/wakassets/rarities/${item[Equipments.rarity]}.png",
+                            contentDescription = "rarity"
+                        )
+                    }
+                }
             }
 
-            Column (
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Text("Nivel 200", fontSize = 16.sp)
-
-                Row (
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AsyncImage(
-                        modifier = Modifier.size(20.dp),
-                        model = "https://tmktahu.github.io/WakfuAssets/itemTypes/${item[Equipments.item_type]}.png",
-                        contentDescription = "type"
-                    )
-                    AsyncImage(
-                        modifier = Modifier.size(20.dp),
-                        model = "https://vertylo.github.io/wakassets/rarities/${item[Equipments.rarity]}.png",
-                        contentDescription = "rarity"
-                    )
+            // Item chars
+            Row {
+                Column {
+                    parsedEffects.forEach {
+                        Text(it, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                    }
                 }
             }
         }
     }
 }
 
+
 @Composable
 fun BuildWindow() {
     // Repositories
     val er: EquipmentsRepository = EquipmentsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
     val efr: EffectsRepository = EffectsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+    val lazyGridState = rememberLazyGridState()
 
     // Colors
     val statPillColor: Color = Color(170, 196,230) // The color for the boxes where the HP, AP, MP and WP are
@@ -291,10 +339,10 @@ fun BuildWindow() {
                     Column (
                         modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-
+                        //Fuego
                         Row (
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row (
@@ -308,10 +356,11 @@ fun BuildWindow() {
                                         contentDescription = "fire dmg"
                                     )
                                 }
+
                             }
                             Text("$fireAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
-                        //Criticos
+                        //Tierra
                         Row (
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -331,7 +380,7 @@ fun BuildWindow() {
                             }
                             Text("$earthAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
-
+                        //Aire
                         Row (
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -345,13 +394,13 @@ fun BuildWindow() {
                                     AsyncImage(
                                         modifier = Modifier.size(20.dp),
                                         model = "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/statistics/air_coin.png",
-                                        contentDescription = "a dmg"
+                                        contentDescription = "air dmg"
                                     )
                                 }
                             }
                             Text("$airAttack", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
-
+                        //Water
                         Row (
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1218,11 +1267,13 @@ fun BuildWindow() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LazyVerticalGrid (
-                    columns = GridCells.Adaptive(minSize = 200.dp),
+                    state = lazyGridState,
+                    columns = GridCells.Adaptive(minSize = 300.dp),
                     modifier = Modifier.fillMaxHeight().weight(1f).background(color = panelColor, shape = RoundedCornerShape(10.dp)).padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(itemPool) {
+                    items(itemPool,key = {it[Equipments.id]}) {
                             item -> EquipmentCell(item, statPillColor)
                     }
                 }
