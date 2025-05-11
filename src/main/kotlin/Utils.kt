@@ -1,3 +1,4 @@
+import androidx.compose.ui.graphics.Color
 import org.jetbrains.exposed.sql.ResultRow
 
 data class Condition (val name: String, val value: Regex)
@@ -23,6 +24,16 @@ fun isLastStackValueGreaterThanTwo(stack: Int): Boolean {
 fun plural(stack: Int): String {
     return if (isLastStackValueGreaterThanTwo(stack)) "s" else ""
 }
+
+fun characterAvatar(character: String): String = "https://tmktahu.github.io/WakfuAssets/classes/$character.png"
+
+fun raritySprite(rarity: Int): String = "https://vertylo.github.io/wakassets/rarities/$rarity.png"
+
+fun itemTypeSprite(type: Int): String = "https://tmktahu.github.io/WakfuAssets/itemTypes/$type.png"
+
+fun itemSprite(id: Int): String = "https://vertylo.github.io/wakassets/items/$id.png"
+
+fun statSprite(stat: String): String = "https://tmktahu.github.io/WakfuAssets/statistics/$stat.png"
 
 fun detectFirstCondition(desc: String): String {
     val conditions = listOf(
@@ -50,22 +61,55 @@ fun detectFirstCondition(desc: String): String {
     return firstCondition
 }
 
-fun parseEffect(effect: ResultRow, level: Int): String {
-    val ar: ActionsRepository = ActionsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+fun checkLevelInput(levelLabel: String): Int {
+    // Check if levelLabel has any symbol that isn't a number
+    val level: Int = levelLabel.toIntOrNull() ?: 0
+
+    return if (level >= 1 && level <= 245) level
+    else {
+        if (level <= 0) 1
+        else 245
+    }
+}
+
+fun rarityColors(rarity: Int): Color {
+    return when (rarity) {
+        1 -> Color(255,255,255) // Common
+        2 -> Color(54,196,54) // Rare
+        3 -> Color(221,127,19) // Mythic
+        4 -> Color(255, 239, 100) // Legend
+        5 -> Color(197, 112, 239) // Relic
+        6 -> Color(34, 209, 205) // Souvenir
+        7 -> Color(255, 152, 207) // Epic
+        else -> Color(40,20,180) // Antique
+    }
+
+}
+
+fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>): String {
+    val sr: StatesRepository = StatesRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+
     var result = "Not found"
 
-    val action: ResultRow? = ar.getActionById(effect[Effects.action])
+    val action: ResultRow? = actions.find { action -> action[Actions.id] == effect[Effects.action] }
 
     if (action != null) {
         result = action[Actions.desc_es]
+        val params: List<Int> = effect[Effects.params]
 
         when (action[Actions.id]) {
-            304 -> println("Estado")
+            304 -> {
+                val state = sr.getStateById(params[0])
+
+                if (state != null) {
+                    return state[States.name_es]
+                }
+            }
             39 -> println("Algo raro")
             2001 -> println("Profesión")
             else -> {
                 var desc: String = action[Actions.desc_es]
-                val params: List<Int> = effect[Effects.params]
+
                 var stack: Int = 0
                 val hasThreeOrMoreArguments: Boolean = params.size >= 6 // [~3]
                 var computedParamNotFound: Boolean = true
@@ -98,10 +142,10 @@ fun parseEffect(effect: ResultRow, level: Int): String {
                     }
                 }
 
-                desc = desc.replace("[el1]", "Fuego")
-                desc = desc.replace("[el2]", "Agua")
-                desc = desc.replace("[el3]", "Tierra")
-                desc = desc.replace("[el4]", "Aire")
+                desc = desc.replace("[el1]", "fuego")
+                desc = desc.replace("[el2]", "agua")
+                desc = desc.replace("[el3]", "tierra")
+                desc = desc.replace("[el4]", "aire")
 
                 result = desc
             }
