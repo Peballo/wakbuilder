@@ -5,6 +5,8 @@ import CharacterClass
 import EffectsRepository
 import EquipmentsRepository
 import FixedGridImageSelector
+import JobsRepository
+import StatesRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -134,7 +136,7 @@ fun LeftOrRightRing(
 }
 
 @Composable
-fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<ResultRow>, onClick: (ResultRow) -> Unit) {
+fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>, onClick: (ResultRow) -> Unit) {
     val nameColor: Color = rarityColors(item[Equipments.rarity])
 
     var effs: List<ResultRow> = emptyList()
@@ -155,7 +157,7 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
         }
 
         for (ef in effs) {
-            parsedEffects = parsedEffects.plus(parseEffect(ef, item[Equipments.level], actions))
+            parsedEffects = parsedEffects.plus(parseEffect(ef, item[Equipments.level], actions, states, jobs))
         }
     }
 
@@ -226,9 +228,14 @@ fun BuildWindow() {
     val er: EquipmentsRepository = EquipmentsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
     val ar: ActionsRepository = ActionsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
     val efr: EffectsRepository = EffectsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+    val sr: StatesRepository = StatesRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+    val jr: JobsRepository = JobsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+
 
     val actions by remember { mutableStateOf(ar.getAllActions()) }
     val effects by remember { mutableStateOf(efr.getAllEffects()) }
+    val jobs by remember { mutableStateOf(jr.getAllJobs()) }
+    val states by remember { mutableStateOf(sr.getAllStates()) }
 
     val lazyGridState = rememberLazyGridState()
 
@@ -243,6 +250,8 @@ fun BuildWindow() {
     var stats by remember { mutableStateOf(CharacterStats()) }
     var showLeftRingDialog by remember { mutableStateOf(false) }
     var lastClickedEquipment by remember { mutableStateOf<ResultRow?>(null) }
+    var lastClickedBuildPart by remember { mutableStateOf("") }
+
     var selectedClass by remember {
         mutableStateOf(
             CharacterClass(
@@ -1496,12 +1505,15 @@ fun BuildWindow() {
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(itemPool, key = {it[Equipments.id]}) { item ->
-                        EquipmentCell(item, effects, actions) { selectedItem ->
+                        EquipmentCell(item, effects, actions, states, jobs) { selectedItem ->
 
                             lastClickedEquipment = selectedItem
                             if (selectedItem[Equipments.item_type] == 103) showLeftRingDialog = true
 
-                            // TODO: FILTER WHERE THE FAMILY SHOULD GO (EITHER MOUNT OR PET) ITEM_TYPE_ID == 582
+                            if (selectedItem[Equipments.item_type] == 582) {
+                                if (lastClickedBuildPart.equals("mount")) build = build.copy(mount = selectedItem)
+                                else if (lastClickedBuildPart.equals("pet")) build = build.copy(pet = selectedItem)
+                            }
 
                             // ITEM_TYPE_ID EMBLEMS ARE 537, 646
 

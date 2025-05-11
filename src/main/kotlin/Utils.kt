@@ -3,16 +3,16 @@ import org.jetbrains.exposed.sql.ResultRow
 
 data class Condition (val name: String, val value: Regex)
 
-fun firstParam(params: List<Int>, level: Int): Int {
-    return params[0] + params[1] * level
+fun firstParam(params: List<Float>, level: Int): Int {
+    return (params[0] + params[1] * level).toInt()
 }
 
-fun secondParam(params: List<Int>, level: Int): Int {
-    return params[2] + params[3] * level
+fun secondParam(params: List<Float>, level: Int): Int {
+    return (params[2] + params[3] * level).toInt()
 }
 
-fun thirdParam(params: List<Int>, level: Int): Int {
-    return params[4] + params[5] * level
+fun thirdParam(params: List<Float>, level: Int): Int {
+    return (params[4] + params[5] * level).toInt()
 }
 
 // [>2]
@@ -86,7 +86,7 @@ fun rarityColors(rarity: Int): Color {
 
 }
 
-fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>): String {
+fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>): String {
     val sr: StatesRepository = StatesRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
 
     var result = "Not found"
@@ -95,11 +95,11 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>): String
 
     if (action != null) {
         result = action[Actions.desc_es]
-        val params: List<Int> = effect[Effects.params]
+        val params: List<Float> = effect[Effects.params]
 
         when (action[Actions.id]) {
             304 -> {
-                val state = sr.getStateById(params[0])
+                val state = sr.getStateById(params[0].toInt())
 
                 if (state != null) {
                     return state[States.name_es]
