@@ -89,9 +89,14 @@ fun FixedGridImageSelector(
         CharacterClass(
             characterAvatar("xelor"),
             "Xelor"
-        ),CharacterClass(
+        ),
+        CharacterClass(
             characterAvatar("rogue"),
             "Tymador"
+        ),
+        CharacterClass(
+            characterAvatar("foggernaut"),
+            "Steamer"
         ),
         // Forjalanza coming soon
     )
