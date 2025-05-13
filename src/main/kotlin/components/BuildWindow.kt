@@ -3,6 +3,7 @@ package components
 import ActionsRepository
 import CharacterClass
 import EffectsRepository
+import Equipments
 import EquipmentsRepository
 import FixedGridImageSelector
 import JobsRepository
@@ -40,13 +41,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import checkLevelInput
 import coil3.compose.AsyncImage
+import firstParam
 import itemSprite
 import itemTypeSprite
 import org.jetbrains.exposed.sql.ResultRow
 import parseEffect
 import rarityColors
 import raritySprite
+import secondParam
 import statSprite
+import kotlin.reflect.full.memberProperties
 
 data class BuildItemsList (
     var helmet: ResultRow? = null,
@@ -65,45 +69,281 @@ data class BuildItemsList (
     var emblem: ResultRow? = null
 )
 
-data class CharacterStats (
+data class CharacterStats(
     var level: Int = 1,
-    var ap: Int = 6,
-    var mp: Int = 3,
-    var wp: Int = 6,
-    var fireA: Int = 1000,
-    var fireR: Int = 9999,
-    var earthA: Int = 1,
-    var earthR: Int = 9999,
-    var waterA: Int = 2,
-    var waterR: Int = 9999,
-    var airA: Int = 3,
-    var airR: Int = 9999,
-    var melee: Int = 1,
-    var distance: Int = 300,
-    var critical: Int = 31,
-    var rear: Int = 400,
-    var berserk: Int = 69,
+    var ap: Int = 0,
+    var mp: Int = 0,
+    var wp: Int = 0,
+    var fireA: Int = 0,
+    var fireR: Int = 0,
+    var earthA: Int = 0,
+    var earthR: Int = 0,
+    var waterA: Int = 0,
+    var waterR: Int = 0,
+    var airA: Int = 0,
+    var airR: Int = 0,
+    var melee: Int = 0,
+    var distance: Int = 0,
+    var critical: Int = 0,
+    var rear: Int = 0,
+    var berserk: Int = 0,
     var healing: Int = 0,
     var givenArmour: Int = 0,
     var receivedArmour: Int = 0,
     var criticalResistance: Int = 0,
     var rearResistance: Int = 0,
     var inflictedDmg: Int = 0,
-    var criticalChance: Int = 3,
+    var criticalChance: Int = 0,
     var heals: Int = 0,
     var block: Int = 0,
     var initiative: Int = 0,
     var lock: Int = 0,
     var dodge: Int = 0,
     var will: Int = 0,
-    var control: Int = 1,
+    var control: Int = 0,
     var range: Int = 0,
     var prospection: Int = 0,
     var wisdom: Int = 0,
-    var character: String = "sacrier"
+    var character: String = "sacrier",
+    var hp: Int = 0
 )
 
+fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>): CharacterStats {
+    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1)
 
+    BuildItemsList::class.memberProperties.forEach { prop ->
+        val item = prop.get(build) as ResultRow?
+
+        if (item != null) {
+            println(item[Equipments.name_es])
+            var effects = allEffects.filter { e -> e[Effects.id] in item[Equipments.effects]}
+
+            for (effect in effects) {
+                var params = effect[Effects.params]
+                var level = item[Equipments.level]
+
+                var firstP = 0
+                var secondP = 0
+
+                if (params.isNotEmpty()) {
+                    firstP = firstParam(params, level)
+                }
+
+                if (params.size > 2) {
+                    secondP = secondParam(params, level)
+                }
+
+                when (effect[Effects.action]) {
+                    20 -> {
+                        println(firstP)
+                        newStats = newStats.copy(hp = newStats.hp + firstP)
+                    }
+                    21 -> {
+                        newStats = newStats.copy(hp = newStats.hp - firstP)
+                    }
+                    26 -> {
+                        newStats = newStats.copy(healing = newStats.healing + firstP)
+                    }
+                    31 -> {
+                        newStats = newStats.copy(ap = newStats.ap + firstP)
+                    }
+                    41 -> {
+                        newStats = newStats.copy(mp = newStats.mp + firstP)
+                    }
+                    56 -> {
+                        newStats = newStats.copy(ap = newStats.ap - firstP)
+                    }
+                    57 -> {
+                        newStats = newStats.copy(mp = newStats.mp - firstP)
+                    }
+                    71 -> {
+                        newStats = newStats.copy(rearResistance = newStats.rearResistance + firstP)
+                    }
+                    80 -> {
+                        newStats = newStats.copy(
+                            fireR = newStats.fireR + firstP,
+                            earthR = newStats.earthR + firstP,
+                            airR = newStats.airR + firstP,
+                            waterR = newStats.waterR + firstP)
+                    }
+                    82 -> {
+                        newStats = newStats.copy(fireR = newStats.fireR + firstP)
+                    }
+                    83 -> {
+                        newStats = newStats.copy(waterR = newStats.waterR + firstP)
+                    }
+                    84 -> {
+                        newStats = newStats.copy(earthR = newStats.earthR + firstP)
+                    }
+                    85 -> {
+                        newStats = newStats.copy(airR = newStats.airR + firstP)
+                    }
+                    90, 100 -> {
+                        newStats = newStats.copy(
+                            fireR = newStats.fireR - firstP,
+                            earthR = newStats.earthR - firstP,
+                            airR = newStats.airR - firstP,
+                            waterR = newStats.waterR - firstP)
+                    }
+                    97 -> {
+                        newStats = newStats.copy(fireR = newStats.fireR - firstP)
+                    }
+                    98 -> {
+                        newStats = newStats.copy(waterR = newStats.waterR - firstP)
+                    }
+                    96 -> {
+                        newStats = newStats.copy(earthR = newStats.earthR - firstP)
+                    }
+                    120 -> {
+                        newStats = newStats.copy(
+                            fireA = newStats.fireA + firstP,
+                            earthA = newStats.earthA + firstP,
+                            airA = newStats.airA + firstP,
+                            waterA = newStats.waterA + firstP)
+                    }
+                    122 -> {
+                        newStats = newStats.copy(fireA = newStats.fireA + firstP)
+                    }
+                    124 -> {
+                        newStats = newStats.copy(waterA = newStats.waterA + firstP)
+                    }
+                    123 -> {
+                        newStats = newStats.copy(earthA = newStats.earthA + firstP)
+                    }
+                    125 -> {
+                        newStats = newStats.copy(airA = newStats.airA + firstP)
+                    }
+                    130 -> {
+                        newStats = newStats.copy(
+                            fireA = newStats.fireA - firstP,
+                            earthA = newStats.earthA - firstP,
+                            airA = newStats.airA - firstP,
+                            waterA = newStats.waterA - firstP)
+                    }
+                    132 -> {
+                        newStats = newStats.copy(fireA = newStats.fireA - firstP)
+                    }
+                    149 -> {
+                        newStats = newStats.copy(critical = newStats.critical + firstP)
+                    }
+                    150 -> {
+                        newStats = newStats.copy(criticalChance = newStats.criticalChance + firstP)
+                    }
+                    160 -> {
+                        newStats = newStats.copy(range = newStats.range + firstP)
+                    }
+                    161 -> {
+                        newStats = newStats.copy(range = newStats.range - firstP)
+                    }
+                    162 -> {
+                        newStats = newStats.copy(prospection = newStats.prospection + firstP)
+                    }
+                    166 -> {
+                        newStats = newStats.copy(wisdom = newStats.wisdom + firstP)
+                    }
+                    168 -> {
+                        newStats = newStats.copy(criticalChance = newStats.criticalChance - firstP)
+                    }
+                    171 -> {
+                        newStats = newStats.copy(initiative = newStats.initiative + firstP)
+                    }
+                    172 -> {
+                        newStats = newStats.copy(initiative = newStats.initiative - firstP)
+                    }
+                    173 -> {
+                        newStats = newStats.copy(lock = newStats.lock + firstP)
+                    }
+                    174 -> {
+                        newStats = newStats.copy(lock = newStats.lock - firstP)
+                    }
+                    175 -> {
+                        newStats = newStats.copy(dodge = newStats.dodge + firstP)
+                    }
+                    176 -> {
+                        newStats = newStats.copy(dodge = newStats.dodge - firstP)
+                    }
+                    177 -> {
+                        newStats = newStats.copy(will = newStats.will + firstP)
+                    }
+                    180 -> {
+                        newStats = newStats.copy(rear = newStats.rear + firstP)
+                    }
+                    181 -> {
+                        newStats = newStats.copy(rear = newStats.rear - firstP)
+                    }
+                    184 -> {
+                        newStats = newStats.copy(control = newStats.control + firstP)
+                    }
+                    191,193 -> {
+                        newStats = newStats.copy(wp = newStats.wp + firstP)
+                    }
+                    192,194 -> {
+                        newStats = newStats.copy(wp = newStats.wp - firstP)
+                    }
+                    875 -> {
+                        newStats = newStats.copy(block = newStats.block + firstP)
+                    }
+                    876 -> {
+                        newStats = newStats.copy(block = newStats.block - firstP)
+                    }
+                    988 -> {
+                        newStats = newStats.copy(criticalResistance = newStats.criticalResistance + firstP)
+                    }
+                    1052 -> {
+                        newStats = newStats.copy(melee = newStats.melee + firstP)
+                    }
+                    1053 -> {
+                        newStats = newStats.copy(distance = newStats.distance + firstP)
+                    }
+                    1055 -> {
+                        newStats = newStats.copy(berserk = newStats.berserk + firstP)
+                    }
+                    1056 -> {
+                        newStats = newStats.copy(critical = newStats.critical - firstP)
+                    }
+                    1059 -> {
+                        newStats = newStats.copy(melee = newStats.melee - firstP)
+                    }
+                    1060 -> {
+                        newStats = newStats.copy(distance = newStats.distance - firstP)
+                    }
+                    1061 -> {
+                        newStats = newStats.copy(berserk = newStats.berserk - firstP)
+                    }
+                    1062 -> {
+                        newStats = newStats.copy(criticalResistance = newStats.criticalResistance - firstP)
+                    }
+                    1063 -> {
+                        newStats = newStats.copy(rearResistance = newStats.rearResistance - firstP)
+                    }
+                    1068 -> {
+                        if (secondP == 1) {
+                            newStats = newStats.copy(fireA = newStats.fireA + firstP)
+                        } else if (secondP == 2) {
+                            newStats = newStats.copy(fireA = newStats.fireA + firstP, earthA = newStats.earthA + firstP)
+                        } else {
+                            newStats = newStats.copy(fireA = newStats.fireA + firstP, earthA = newStats.earthA + firstP, waterA = newStats.waterA + firstP)
+                        }
+                    }
+                    1069 -> {
+                        if (secondP == 1) {
+                            newStats = newStats.copy(fireR = newStats.fireR + firstP)
+                        } else if (secondP == 2) {
+                            newStats = newStats.copy(fireR = newStats.fireR + firstP, earthR = newStats.earthR + firstP)
+                        } else {
+                            newStats = newStats.copy(fireR = newStats.fireR + firstP, earthR = newStats.earthR + firstP, waterR = newStats.waterR + firstP)
+                        }
+                    }
+                    else -> {
+
+                    }
+                }
+            }
+        }
+    }
+
+    return newStats
+}
 
 @Composable
 fun LeftOrRightRing(
@@ -247,7 +487,7 @@ fun BuildWindow() {
     var itemPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
     var effectsPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
     var build by remember { mutableStateOf(BuildItemsList()) }
-    var stats by remember { mutableStateOf(CharacterStats()) }
+    var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
     var showLeftRingDialog by remember { mutableStateOf(false) }
     var lastClickedEquipment by remember { mutableStateOf<ResultRow?>(null) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
@@ -342,7 +582,7 @@ fun BuildWindow() {
                             )
                         }
 
-                        Text("${stats.level*10+50}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("${stats.hp}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
 
                     Column (
@@ -1140,6 +1380,7 @@ fun BuildWindow() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // BUILD BOX
+            // BUILD BOX
             Row(
                 modifier = Modifier.fillMaxWidth().background(color = panelColor, shape = RoundedCornerShape(10.dp)).padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1155,6 +1396,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "helmet"
                         itemPool = er.getEquipmentsByTypeAndLevel(134, stats.level)
                     }
                 ) {
@@ -1180,6 +1422,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "neck"
                         itemPool = er.getEquipmentsByTypeAndLevel(120, stats.level)
                     }
                 ) {
@@ -1205,6 +1448,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "chest"
                         itemPool = er.getEquipmentsByTypeAndLevel(136, stats.level)
                     }
                 ) {
@@ -1230,6 +1474,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "left_ring"
                         itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
                     }
                 ) {
@@ -1255,6 +1500,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "right_ring"
                         itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
                     }
                 ) {
@@ -1279,6 +1525,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "boots"
                         itemPool = er.getEquipmentsByTypeAndLevel(119, stats.level)
                     }
                 ) {
@@ -1303,6 +1550,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "cape"
                         itemPool = er.getEquipmentsByTypeAndLevel(132, stats.level)
                     }
                 ) {
@@ -1327,6 +1575,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "epaulettes"
                         itemPool = er.getEquipmentsByTypeAndLevel(138, stats.level)
                     }
                 ) {
@@ -1351,6 +1600,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "belt"
                         itemPool = er.getEquipmentsByTypeAndLevel(133, stats.level)
                     }
                 ) {
@@ -1375,6 +1625,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "first_weapon"
                         itemPool = er.getEquipmentsByTypesAndLevel(listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254), stats.level)
                     }
                 ) {
@@ -1382,7 +1633,7 @@ fun BuildWindow() {
                         AsyncImage(
                             modifier = Modifier.fillMaxSize(),
                             model = itemSprite(build.first_weapon!![Equipments.sprite_id]),
-                            contentDescription = "belt",
+                            contentDescription = "primary weapon",
                             alignment = Alignment.Center
                         )
                     } else {
@@ -1399,6 +1650,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "second_weapon"
                         itemPool = er.getEquipmentsByTypesAndLevel(listOf(112, 189), stats.level)
                     }
                 ) {
@@ -1412,7 +1664,7 @@ fun BuildWindow() {
                     } else {
                         AsyncImage(
                             model = "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/SECOND_WEAPON.png",
-                            contentDescription = "secondary weapon",
+                            contentDescription = "second weapon",
                             contentScale = ContentScale.Crop,
                             alignment = Alignment.Center
                         )
@@ -1423,6 +1675,7 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
+                        lastClickedBuildPart = "emblem"
                         itemPool = er.getEquipmentsByTypesAndLevel(listOf(537, 646), stats.level)
                     }
                 ) {
@@ -1447,7 +1700,8 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
-                        itemPool = er.getEquipmentsByTypeAndLevel(582, 50)
+                        lastClickedBuildPart = "mount"
+                        itemPool = er.getEquipmentsByType(611)
                     }
                 ) {
                     if (build.mount != null) {
@@ -1471,7 +1725,8 @@ fun BuildWindow() {
                     modifier = Modifier.size(64.dp).background(statPillColor, shape = RoundedCornerShape(10.dp)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
-                        itemPool = er.getEquipmentsByTypeAndLevel(582, 50)
+                        lastClickedBuildPart = "pet"
+                        itemPool = er.getEquipmentsByType(582)
                     }
                 ) {
                     if (build.pet != null) {
@@ -1506,37 +1761,97 @@ fun BuildWindow() {
                 ) {
                     items(itemPool, key = {it[Equipments.id]}) { item ->
                         EquipmentCell(item, effects, actions, states, jobs) { selectedItem ->
+                            when (lastClickedBuildPart) {
+                                "helmet" -> {
+                                    build = if (build.helmet != null) {
+                                        if (build.helmet!![Equipments.id] == selectedItem[Equipments.id]) build.copy(helmet = null)
+                                        else build.copy(helmet = selectedItem)
+                                    } else build.copy(helmet = selectedItem)
+                                }
+                                "neck" -> {
+                                    build = if (build.neck != null) {
+                                        if (build.neck!![Equipments.id] == selectedItem[Equipments.id]) build.copy(neck = null)
+                                        else build.copy(neck = selectedItem)
+                                    } else build.copy(neck = selectedItem)
+                                }
+                                "chest" -> {
+                                    build = if (build.chest != null) {
+                                        if (build.chest!![Equipments.id] == selectedItem[Equipments.id]) build.copy(chest = null)
+                                        else build.copy(chest = selectedItem)
+                                    } else build.copy(chest = selectedItem)
+                                }
+                                "left_ring" -> {
+                                    build = if (build.left_ring != null) {
+                                        if (build.left_ring!![Equipments.id] == selectedItem[Equipments.id]) build.copy(left_ring = null)
+                                        else build.copy(left_ring = selectedItem)
+                                    } else build.copy(left_ring = selectedItem)
+                                }
+                                "right_ring" -> {
+                                    build = if (build.right_ring != null) {
+                                        if (build.right_ring!![Equipments.id] == selectedItem[Equipments.id]) build.copy(right_ring = null)
+                                        else build.copy(right_ring = selectedItem)
+                                    } else build.copy(right_ring = selectedItem)
+                                }
+                                "boots" -> {
+                                    build = if (build.boots != null) {
+                                        if (build.boots!![Equipments.id] == selectedItem[Equipments.id]) build.copy(boots = null)
+                                        else build.copy(boots = selectedItem)
+                                    } else build.copy(boots = selectedItem)
+                                }
+                                "cape" -> {
+                                    build = if (build.cape != null) {
+                                        if (build.cape!![Equipments.id] == selectedItem[Equipments.id]) build.copy(cape = null)
+                                        else build.copy(cape = selectedItem)
+                                    } else build.copy(cape = selectedItem)
+                                }
+                                "epaulettes" -> {
+                                    build = if (build.epaulettes != null) {
+                                        if (build.epaulettes!![Equipments.id] == selectedItem[Equipments.id]) build.copy(epaulettes = null)
+                                        else build.copy(epaulettes = selectedItem)
+                                    } else build.copy(epaulettes = selectedItem)
+                                }
+                                "belt" -> {
+                                    build = if (build.belt != null) {
+                                        if (build.belt!![Equipments.id] == selectedItem[Equipments.id]) build.copy(belt = null)
+                                        else build.copy(belt = selectedItem)
+                                    } else build.copy(belt = selectedItem)
+                                }
+                                "first_weapon" -> {
+                                    build = if (build.first_weapon != null) {
+                                        if (build.first_weapon!![Equipments.id] == selectedItem[Equipments.id]) build.copy(first_weapon = null)
+                                        else build.copy(first_weapon = selectedItem)
+                                    } else build.copy(first_weapon = selectedItem)
+                                }
+                                "second_weapon" -> {
+                                    build = if (build.second_weapon != null) {
+                                        if (build.second_weapon!![Equipments.id] == selectedItem[Equipments.id]) build.copy(second_weapon = null)
+                                        else build.copy(second_weapon = selectedItem)
+                                    } else build.copy(second_weapon = selectedItem)
+                                }
+                                "emblem" -> {
+                                    build = if (build.emblem != null) {
+                                        if (build.emblem!![Equipments.id] == selectedItem[Equipments.id]) build.copy(emblem = null)
+                                        else build.copy(emblem = selectedItem)
+                                    } else build.copy(emblem = selectedItem)
+                                }
+                                "mount" -> {
+                                    build = if (build.mount != null) {
+                                        if (build.mount!![Equipments.id] == selectedItem[Equipments.id]) build.copy(mount = null)
+                                        else build.copy(mount = selectedItem)
+                                    } else build.copy(mount = selectedItem)
+                                }
+                                "pet" -> {
+                                    build = if (build.pet != null) {
+                                        if (build.pet!![Equipments.id] == selectedItem[Equipments.id]) build.copy(pet = null)
+                                        else build.copy(pet = selectedItem)
+                                    } else build.copy(pet = selectedItem)
+                                }
+                                else -> {
 
-                            lastClickedEquipment = selectedItem
-                            if (selectedItem[Equipments.item_type] == 103) showLeftRingDialog = true
-
-                            if (selectedItem[Equipments.item_type] == 582) {
-                                if (lastClickedBuildPart.equals("mount")) build = build.copy(mount = selectedItem)
-                                else if (lastClickedBuildPart.equals("pet")) build = build.copy(pet = selectedItem)
+                                }
                             }
 
-                            // ITEM_TYPE_ID EMBLEMS ARE 537, 646
-
-                            build = build.copy(
-                                helmet = if (selectedItem[Equipments.item_type] == 134) selectedItem else build.helmet,
-                                neck = if (selectedItem[Equipments.item_type] == 120) selectedItem else build.neck,
-                                chest = if (selectedItem[Equipments.item_type] == 136) selectedItem else build.chest,
-                                left_ring = build.left_ring,
-                                right_ring = build.right_ring,
-                                boots = if (selectedItem[Equipments.item_type] == 119) selectedItem else build.boots,
-                                cape = if (selectedItem[Equipments.item_type] == 132) selectedItem else build.cape,
-                                epaulettes = if (selectedItem[Equipments.item_type] == 138) selectedItem else build.epaulettes,
-                                belt = if (selectedItem[Equipments.item_type] == 133) selectedItem else build.belt,
-                                first_weapon = build.first_weapon,
-                                second_weapon = build.second_weapon,
-                                mount = build.mount,
-                                pet = build.pet,
-                                emblem = if (selectedItem[Equipments.item_type] in listOf(537, 646)) selectedItem else build.emblem
-                            )
-
-                            if (build.helmet != null) {
-                                // TODO: MAKE THIS HELMET CHANGE THE STATS BASED ON THE EFFECTS
-                            }
+                            stats = calculateStats(stats, build, effects).copy()
                         }
                     }
                 }
