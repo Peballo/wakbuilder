@@ -346,36 +346,6 @@ fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: Lis
 }
 
 @Composable
-fun LeftOrRightRing(
-    showDialog: Boolean,
-    onLeft: () -> Unit,
-    onRight: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = {
-                Text("Elegir anillo")
-            },
-            text = {
-                Text("¿Se va a equipar al anillo izquierdo o derecho?")
-            },
-            confirmButton = {
-                TextButton(onClick = onRight) {
-                    Text("Derecho")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onLeft) {
-                    Text("Izquierdo")
-                }
-            }
-        )
-    }
-}
-
-@Composable
 fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>, onClick: (ResultRow) -> Unit) {
     val nameColor: Color = rarityColors(item[Equipments.rarity])
 
@@ -463,14 +433,14 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
 
 
 @Composable
-fun BuildWindow() {
-    // Repositories
-    val er: EquipmentsRepository = EquipmentsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
-    val ar: ActionsRepository = ActionsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
-    val efr: EffectsRepository = EffectsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
-    val sr: StatesRepository = StatesRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
-    val jr: JobsRepository = JobsRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
+fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
 
+    // Repositories AIVEN
+    val er = EquipmentsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    val ar = ActionsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    val efr = EffectsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    val sr = StatesRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    val jr = JobsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
 
     val actions by remember { mutableStateOf(ar.getAllActions()) }
     val effects by remember { mutableStateOf(efr.getAllEffects()) }
@@ -485,11 +455,8 @@ fun BuildWindow() {
 
     // States
     var itemPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
-    var effectsPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
     var build by remember { mutableStateOf(BuildItemsList()) }
     var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
-    var showLeftRingDialog by remember { mutableStateOf(false) }
-    var lastClickedEquipment by remember { mutableStateOf<ResultRow?>(null) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
 
     var selectedClass by remember {
@@ -500,29 +467,6 @@ fun BuildWindow() {
             )
         )
     }
-
-    LeftOrRightRing(
-        showLeftRingDialog,
-        onRight = {
-            if (lastClickedEquipment != null && lastClickedEquipment!![Equipments.item_type] == 103) {
-                build = build.copy(
-                    right_ring = lastClickedEquipment
-                )
-            }
-            showLeftRingDialog = false
-        },
-        onLeft = {
-            if (lastClickedEquipment != null && lastClickedEquipment!![Equipments.item_type] == 103) {
-                build = build.copy(
-                    left_ring = lastClickedEquipment
-                )
-            }
-            showLeftRingDialog = false
-        },
-        onDismiss = {
-            showLeftRingDialog = false
-        }
-    )
 
     Row (
         modifier = Modifier.fillMaxSize(),

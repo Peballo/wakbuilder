@@ -29,13 +29,9 @@ class JobsRepository (
 
         var result: List<ResultRow> = emptyList()
 
-        try {
-            transaction {
-                SchemaUtils.create(Jobs)
-                result = Jobs.selectAll().toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = emptyList()
+        transaction {
+            SchemaUtils.create(Jobs)
+            result = Jobs.selectAll().toList()
         }
 
         return result

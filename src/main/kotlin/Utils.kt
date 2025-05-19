@@ -1,5 +1,25 @@
 import androidx.compose.ui.graphics.Color
 import org.jetbrains.exposed.sql.ResultRow
+import java.io.File
+import kotlin.math.floor
+
+object envReader {
+    private val envMap = mutableMapOf<String, String>()
+    init {
+        File("src/.env").readLines().forEach {
+            line -> if(line.isNotBlank() && !line.startsWith("#")) {
+                val parts = line.split("=", limit = 2)
+                if (parts.size == 2) {
+                    val key = parts[0].trim()
+                    val value = parts[1].trim()
+                    envMap[key] = value
+                }
+            }
+        }
+    }
+    operator fun get(key: String) : String? = envMap[key]
+    fun getOrDefault(key: String, default: String) : String = envMap[key] ?: default
+}
 
 data class Condition (val name: String, val value: Regex)
 
@@ -87,7 +107,6 @@ fun rarityColors(rarity: Int): Color {
 }
 
 fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>): String {
-    val sr: StatesRepository = StatesRepository("jdbc:postgresql://localhost:5432/wakbuilder", "org.postgresql.Driver", "postgres", "1234")
 
     var result = "Not found"
 
@@ -99,7 +118,7 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
 
         when (action[Actions.id]) {
             304 -> {
-                val state = sr.getStateById(params[0].toInt())
+                val state = states.find { s -> s[States.id] == params[0].toInt()}
 
                 if (state != null) {
                     return state[States.name_es]
@@ -119,10 +138,10 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
 
                     var firstCondition: String = detectFirstCondition(desc)
 
-                    if (firstCondition.length > 0) {
+                    if (firstCondition.isNotEmpty()) {
                         computedParamNotFound = true
 
-                        if (firstCondition.equals("{[~3]?")) {
+                        if (firstCondition == "{[~3]?") {
                             if (!hasThreeOrMoreArguments) {
                                 desc = desc.substring(desc.indexOf(":")+1, desc.length-1)
                             }
@@ -132,12 +151,12 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
                         } else if (firstCondition == "{[>2]?s:}") {
                             desc = desc.replace(firstCondition, plural(stack))
                         } else if (firstCondition == "[#1]") {
-                            desc = desc.replace(firstCondition, "${Math.floor(firstParam(params, level).toDouble()).toInt()}")
+                            desc = desc.replace(firstCondition, "${floor(firstParam(params, level).toDouble()).toInt()}")
                         } else if (firstCondition == "[#2]") {
                             if (action[Actions.id] == 2001) desc = desc.replace(firstCondition, "${params[2]}")
-                            else desc = desc.replace(firstCondition, "${Math.floor(secondParam(params, level).toDouble()).toInt()}")
+                            else desc = desc.replace(firstCondition, "${floor(secondParam(params, level).toDouble()).toInt()}")
                         } else if (firstCondition == "[#3]") {
-                            desc = desc.replace(firstCondition, "${Math.floor(thirdParam(params, level).toDouble()).toInt()}")
+                            desc = desc.replace(firstCondition, "${floor(thirdParam(params, level).toDouble()).toInt()}")
                         }
                     }
                 }

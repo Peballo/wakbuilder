@@ -29,13 +29,9 @@ class EffectsRepository (
 
         var result: List<ResultRow> = emptyList()
 
-        try {
-            transaction {
-                SchemaUtils.create(Effects)
-                result = Effects.selectAll().toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = emptyList()
+        transaction {
+            SchemaUtils.create(Effects)
+            result = Effects.selectAll().toList()
         }
 
         return result

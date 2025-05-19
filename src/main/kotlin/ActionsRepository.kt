@@ -1,4 +1,5 @@
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ActionsRepository (
@@ -12,14 +13,10 @@ class ActionsRepository (
 
         var result: ResultRow? = null
 
-        try {
-            transaction {
-                SchemaUtils.create(Actions)
+        transaction {
+            SchemaUtils.create(Actions)
 
-                result = Actions.selectAll().where { Actions.id eq id }.first()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = null
+            result = Actions.select(Actions.id eq id).singleOrNull()
         }
 
         return result
@@ -30,14 +27,10 @@ class ActionsRepository (
 
         var result: List<ResultRow> = emptyList()
 
-        try {
-            transaction {
-                SchemaUtils.create(Actions)
+        transaction {
+            SchemaUtils.create(Actions)
 
-                result = Actions.selectAll().toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = emptyList()
+            result = Actions.selectAll().toList()
         }
 
         return result

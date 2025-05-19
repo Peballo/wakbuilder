@@ -45,14 +45,12 @@ class EquipmentsRepository (
 
         var result: List<ResultRow> = listOf()
 
-        try {
-            transaction {
-                SchemaUtils.create(Equipments)
-                result = Equipments.selectAll().where { Equipments.item_type eq type }.toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = listOf()
+
+        transaction {
+            SchemaUtils.create(Equipments)
+            result = Equipments.selectAll().where { Equipments.item_type eq type }.toList()
         }
+
 
         return result
     }
@@ -61,14 +59,12 @@ class EquipmentsRepository (
         Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: List<ResultRow> = listOf()
 
-        try {
-            transaction {
-                SchemaUtils.create(Equipments)
-                result = Equipments.selectAll().andWhere {Equipments.item_type eq type}.andWhere {Equipments.level eq level}.toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = listOf()
+
+        transaction {
+            SchemaUtils.create(Equipments)
+            result = Equipments.selectAll().andWhere {Equipments.item_type eq type}.andWhere {Equipments.level eq level}.toList()
         }
+
 
         return result
     }
@@ -77,14 +73,12 @@ class EquipmentsRepository (
         Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: List<ResultRow> = listOf()
 
-        try {
-            transaction {
-                SchemaUtils.create(Equipments)
-                result = Equipments.selectAll().andWhere {Equipments.item_type inList types}.andWhere { Equipments.level eq level }.toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = listOf()
+
+        transaction {
+            SchemaUtils.create(Equipments)
+            result = Equipments.selectAll().andWhere {Equipments.item_type inList types}.andWhere { Equipments.level eq level }.toList()
         }
+
 
         return result
     }
