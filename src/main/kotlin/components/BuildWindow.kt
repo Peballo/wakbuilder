@@ -1,13 +1,13 @@
 package components
 
-import ActionsRepository
+import repositories.ActionsRepository
 import CharacterClass
-import EffectsRepository
+import repositories.EffectsRepository
 import Equipments
-import EquipmentsRepository
+import repositories.EquipmentsRepository
 import FixedGridImageSelector
-import JobsRepository
-import StatesRepository
+import repositories.JobsRepository
+import repositories.StatesRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

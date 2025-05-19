@@ -36,6 +36,7 @@ import androidx.compose.ui.window.rememberWindowState
 import components.BuildWindow
 import components.MainWindow
 import org.jetbrains.exposed.sql.ResultRow
+import repositories.AccountsRepository
 
 @Composable
 fun LoginRegisterDialog(

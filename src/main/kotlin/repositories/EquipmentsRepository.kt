@@ -1,5 +1,7 @@
+package repositories
+
+import Equipments
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class EquipmentsRepository (
@@ -62,7 +64,7 @@ class EquipmentsRepository (
 
         transaction {
             SchemaUtils.create(Equipments)
-            result = Equipments.selectAll().andWhere {Equipments.item_type eq type}.andWhere {Equipments.level eq level}.toList()
+            result = Equipments.selectAll().andWhere { Equipments.item_type eq type}.andWhere { Equipments.level eq level}.toList()
         }
 
 
@@ -76,7 +78,7 @@ class EquipmentsRepository (
 
         transaction {
             SchemaUtils.create(Equipments)
-            result = Equipments.selectAll().andWhere {Equipments.item_type inList types}.andWhere { Equipments.level eq level }.toList()
+            result = Equipments.selectAll().andWhere { Equipments.item_type inList types}.andWhere { Equipments.level eq level }.toList()
         }
 
 
