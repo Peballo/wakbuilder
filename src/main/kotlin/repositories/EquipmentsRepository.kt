@@ -84,4 +84,48 @@ class EquipmentsRepository (
 
         return result
     }
+
+    fun getEquipmentsByTypeAndLevelRange(type: Int, minLevel: Int, maxLevel: Int): List<ResultRow> {
+        Database.connect(dbUrl, driver, dbUsername, dbPassword)
+        var result: List<ResultRow> = listOf()
+
+        transaction {
+            SchemaUtils.create(Equipments)
+            result = Equipments.selectAll()
+                .andWhere { Equipments.item_type eq type }
+                .andWhere { Equipments.level greaterEq minLevel }
+                .andWhere { Equipments.level lessEq maxLevel }
+                .toList()
+        }
+
+        return result
+    }
+
+    fun getEquipmentsByTypeAndMultipleLevelRange(
+        type: Int,
+        selectedRanges: Set<String>
+    ): List<ResultRow> {
+        Database.connect(dbUrl, driver, dbUsername, dbPassword)
+        var result: List<ResultRow> = listOf()
+
+        // Convertir los rangos de String a pares de números
+        val ranges = selectedRanges.map { rangeStr ->
+            val levels = rangeStr.split("-").map { it.trim().toInt() }
+            Pair(levels[0], levels[1])
+        }
+
+        transaction {
+            SchemaUtils.create(Equipments)
+            result = Equipments.selectAll()
+                .andWhere { Equipments.item_type eq type }
+                .andWhere {
+                    ranges.map { (min, max) ->
+                        (Equipments.level greaterEq min) and (Equipments.level lessEq max)
+                    }.reduce { acc, op -> acc or op }
+                }
+                .orderBy(Equipments.id to SortOrder.ASC).toList()
+        }
+
+        return result
+    }
 }

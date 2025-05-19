@@ -1,6 +1,9 @@
 import androidx.compose.ui.graphics.Color
+import objects.Accounts
 import org.jetbrains.exposed.sql.ResultRow
+import repositories.AccountsRepository
 import java.io.File
+import java.security.MessageDigest
 import kotlin.math.floor
 
 object envReader {
@@ -172,4 +175,46 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
     }
 
     return result
+}
+
+fun sha256(value: String): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val hashBytes = digest.digest(value.toByteArray())
+    return hashBytes.joinToString("") { "%02x".format(it) } // Convierte cada byte en un string hexadecimal
+}
+
+fun validateSha256(foundPassword: String, enteredPassword: String): Boolean {
+    val calculatedHash = sha256(enteredPassword)
+    return calculatedHash.equals(foundPassword, ignoreCase = true)
+}
+
+fun createAccount(user: String, pass: String, ar: AccountsRepository): Int {
+    return ar.insertAccount(user, pass)
+}
+
+fun checkAccount(user: String, password: String): String {
+    val ar = AccountsRepository(
+        dbUrl = envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"),
+        driver = "org.postgresql.Driver",
+        dbUsername = envReader.getOrDefault("DB_USER", "postgres"),
+        dbPassword = envReader.getOrDefault("DB_PASSWORD", "1234"))
+
+    val account = ar.getAccountByName(user)
+
+    return when {
+        account != null -> {
+            val storedHash = account[Accounts.password]
+            if (validateSha256(storedHash, password)) user
+            else ""
+        }
+        else -> {
+            try {
+                val id = createAccount(user, sha256(password), ar)
+                if (id >= 0) user else ""
+            } catch (e: Exception) {
+                println("ERROR CREATING ACCOUNT: ${e.message}")
+                ""
+            }
+        }
+    }
 }

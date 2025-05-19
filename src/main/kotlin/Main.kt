@@ -107,9 +107,8 @@ fun LoginRegisterDialog(
 @Composable
 @Preview
 fun App() {
-    val ar = AccountsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
 
-    var account by remember { mutableStateOf<ResultRow?>(null) }
+    var account by remember { mutableStateOf("") }
     var route by remember { mutableStateOf("home") }
     var showDialog by remember { mutableStateOf(false) }
 
@@ -129,14 +128,25 @@ fun App() {
                         Text("Wakbuilder", color = Color.White, fontSize = 32.sp)
                     }
 
-                    Column() {
-                        Button(
-                            onClick = {
-                                showDialog = true
-                                println("Showing dialog")
+                    if (route == "home") {
+                        Column() {
+                            if (account.isNotEmpty()) {
+                                Text(account)
                             }
-                        ) {
-                            Text("Account")
+                            else {
+                                Button(
+                                    onClick = {
+                                        showDialog = true
+                                    }
+                                ) {
+                                    Text("Account")
+                                }
+                            }
+
+                        }
+                    } else if (route == "builder") {
+                        if (account.isNotEmpty()) {
+                            Text(account)
                         }
                     }
                 }
@@ -155,7 +165,7 @@ fun App() {
                     showDialog = showDialog,
                     onDismiss = { showDialog = false },
                     onLoginRegister = { username, password ->
-                        println("Username $username, password $password")
+                        account = checkAccount(username, password)
                     }
                 )
             }

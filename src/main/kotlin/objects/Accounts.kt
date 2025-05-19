@@ -1,10 +1,9 @@
 package objects
 
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.Table
 
-object Accounts : Table("accounts") {
-    val id: Column<Int> = integer("id").autoIncrement()
+object Accounts : IntIdTable("accounts") {
     val username: Column<String> = text("username")
     val password: Column<String> = text("password")
 }

@@ -12,10 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.exposed.sql.ResultRow
 
 @Composable
-fun MainWindow(account: ResultRow?, onRouteChange: (String) -> Unit) {
+fun MainWindow(account: String, onRouteChange: (String) -> Unit) {
 
     Row (
         modifier = Modifier.fillMaxSize(),
@@ -27,7 +26,7 @@ fun MainWindow(account: ResultRow?, onRouteChange: (String) -> Unit) {
             Row (
                 modifier = Modifier.height(50.dp)
             ) {
-                if (account != null) {
+                if (account.isNotEmpty()) {
                     TextButton(
                         onClick = {
 

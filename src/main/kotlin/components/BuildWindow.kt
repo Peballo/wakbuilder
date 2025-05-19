@@ -9,16 +9,7 @@ import FixedGridImageSelector
 import repositories.JobsRepository
 import repositories.StatesRepository
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -37,6 +28,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import checkLevelInput
@@ -109,7 +101,7 @@ data class CharacterStats(
 )
 
 fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>): CharacterStats {
-    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1)
+    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1, character = stats.character)
 
     BuildItemsList::class.memberProperties.forEach { prop ->
         val item = prop.get(build) as ResultRow?
@@ -433,7 +425,7 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
 
 
 @Composable
-fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
+fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
 
     // Repositories AIVEN
     val er = EquipmentsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
@@ -447,6 +439,7 @@ fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
     val jobs by remember { mutableStateOf(jr.getAllJobs()) }
     val states by remember { mutableStateOf(sr.getAllStates()) }
 
+
     val lazyGridState = rememberLazyGridState()
 
     // Colors
@@ -458,6 +451,7 @@ fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
     var build by remember { mutableStateOf(BuildItemsList()) }
     var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
+    var selectedRanges by remember { mutableStateOf(setOf("231 - 245")) }
 
     var selectedClass by remember {
         mutableStateOf(
@@ -1341,7 +1335,8 @@ fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "helmet"
-                        itemPool = er.getEquipmentsByTypeAndLevel(134, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(134, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(134, selectedRanges)
                     }
                 ) {
                     if (build.helmet != null) {
@@ -1799,10 +1794,82 @@ fun BuildWindow(account: ResultRow?,onRouteChanged: (String) -> Unit) {
                         }
                     }
                 }
-                Box (
-                    modifier = Modifier.fillMaxHeight().width(220.dp).background(color = panelColor, shape = RoundedCornerShape(10.dp)).padding(10.dp)
+                Column (
+                    modifier = Modifier.fillMaxHeight()
+                        .width(220.dp)
+                        .background(color = panelColor, shape = RoundedCornerShape(10.dp))
+                        .padding(10.dp),
                 ) {
-                    Text("Filters")
+                    Row (
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+
+                        Text(
+                            text = "Rangos de niveles:",
+                            modifier = Modifier
+                        )
+                    }
+
+                    val levelRanges = listOf(
+                        "0 - 5", "6 - 20",
+                        "21 - 35", "36 - 50",
+                        "51 - 65", "66 - 80",
+                        "81 - 95", "96 - 110",
+                        "111 - 125", "126 - 140",
+                        "141 - 155", "156 - 170",
+                        "171 - 185", "186 - 200",
+                        "201 - 215", "216 - 230",
+                        "231 - 245"
+                    )
+
+
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(levelRanges) { range ->
+                                val isSelected = selectedRanges.contains(range)
+                                Button(
+                                    onClick = {
+                                        selectedRanges = if (isSelected) {
+                                            selectedRanges - range
+                                        } else {
+                                            selectedRanges + range
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .width(85.dp)
+                                        .height(24.dp),
+                                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = if (isSelected) {
+                                            Color(171, 214, 250) // Color principal cuando está seleccionado
+                                        } else {
+                                            Color(170, 196,230) // Color más claro cuando no está seleccionado
+                                        }
+                                    ),
+                                    shape = RoundedCornerShape(2.dp)
+                                ) {
+                                    Text(
+                                        text = range,
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Black.copy(alpha = if (isSelected) 1f else 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
