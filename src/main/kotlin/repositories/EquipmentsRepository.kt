@@ -2,6 +2,8 @@ package repositories
 
 import Equipments
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class EquipmentsRepository (
@@ -101,12 +103,36 @@ class EquipmentsRepository (
         return result
     }
 
+
     fun getEquipmentsByTypeAndMultipleLevelRange(
         type: Int,
         selectedRanges: Set<String>
     ): List<ResultRow> {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
-        var result: List<ResultRow> = listOf()
+        return getEquipmentsByTypeAndMultipleLevelRange(listOf(type), selectedRanges)
+    }
+
+    fun getEquipmentsByTypeAndMultipleLevelRange(
+        types: List<Int>,  // Cambiado de Int a List<Int>
+        selectedRanges: Set<String>
+    ): List<ResultRow> {
+
+        if (selectedRanges.contains("") ) {
+            return transaction {
+                SchemaUtils.create(Equipments)
+
+                Equipments.selectAll()
+                    .andWhere {
+                        if (types.size == 1) {
+                            Equipments.item_type eq types.first()
+                        } else {
+                            Equipments.item_type inList types
+                        }
+                    }
+                    .orderBy(Equipments.id to SortOrder.DESC)
+                    .toList()
+            }
+        }
+
 
         // Convertir los rangos de String a pares de números
         val ranges = selectedRanges.map { rangeStr ->
@@ -114,18 +140,29 @@ class EquipmentsRepository (
             Pair(levels[0], levels[1])
         }
 
-        transaction {
+        return transaction {
             SchemaUtils.create(Equipments)
-            result = Equipments.selectAll()
-                .andWhere { Equipments.item_type eq type }
-                .andWhere {
-                    ranges.map { (min, max) ->
-                        (Equipments.level greaterEq min) and (Equipments.level lessEq max)
-                    }.reduce { acc, op -> acc or op }
-                }
-                .orderBy(Equipments.id to SortOrder.ASC).toList()
-        }
+            val conditions = ranges.map { (min, max) ->
+                (Equipments.level greaterEq min) and (Equipments.level lessEq max)
+            }
 
-        return result
+            Equipments.selectAll()
+                .andWhere {
+                    if (types.size == 1) {
+                        Equipments.item_type eq types.first()
+                    } else {
+                        Equipments.item_type inList types
+                    }
+                }
+                .andWhere {
+                    if (conditions.isNotEmpty()) {
+                        conditions.reduce { acc, op -> acc or op }
+                    } else {
+                        Op.build { Equipments.id eq -1 }
+                    }
+                }
+                .orderBy(Equipments.id to SortOrder.DESC)
+                .toList()
+        }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -364,7 +365,11 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
     }
 
     Button(
-        modifier = Modifier.fillMaxSize(),
+
+        modifier = Modifier.fillMaxSize()
+            .defaultMinSize(minHeight = 330.dp)
+            .fillMaxWidth()
+            .height(330.dp),
         colors = ButtonDefaults.buttonColors(Color(171, 214, 250)),
         shape = RoundedCornerShape(8.dp),
         onClick = { onClick(item) }
@@ -451,7 +456,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
     var build by remember { mutableStateOf(BuildItemsList()) }
     var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
-    var selectedRanges by remember { mutableStateOf(setOf("231 - 245")) }
+    var selectedRanges by remember { mutableStateOf(setOf("")) }
 
     var selectedClass by remember {
         mutableStateOf(
@@ -491,9 +496,14 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                         Text("Visama", fontSize = 24.sp, fontWeight = FontWeight.Medium)
                         TextField(
                             value = "${stats.level}",
-                            onValueChange = { stats = stats.copy(level = checkLevelInput( it)) },
+                            onValueChange = { stats = stats.copy(level = checkLevelInput( it));stats = calculateStats(stats, build, effects) },
                             label = { Text("Nivel") },
-                            colors = TextFieldDefaults.textFieldColors(backgroundColor = statPillColor)
+                            colors = TextFieldDefaults.textFieldColors(backgroundColor = statPillColor),
+                            keyboardActions = KeyboardActions(
+                            onDone = {
+                                calculateStats(stats, build, effects)
+                            }
+                            )
                         )
                     }
                 }
@@ -1362,7 +1372,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "neck"
-                        itemPool = er.getEquipmentsByTypeAndLevel(120, stats.level)
+//                        itemPool = er.getEquipmentsByTypeAndLevel(120, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(120, selectedRanges)
                     }
                 ) {
                     if (build.neck != null) {
@@ -1388,7 +1399,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "chest"
-                        itemPool = er.getEquipmentsByTypeAndLevel(136, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(136, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(136, selectedRanges)
                     }
                 ) {
                     if (build.chest != null) {
@@ -1414,7 +1426,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "left_ring"
-                        itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges)
                     }
                 ) {
                     if (build.left_ring != null) {
@@ -1440,7 +1453,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "right_ring"
-                        itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges)
                     }
                 ) {
                     if (build.right_ring != null) {
@@ -1465,7 +1479,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "boots"
-                        itemPool = er.getEquipmentsByTypeAndLevel(119, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(119, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(119, selectedRanges)
                     }
                 ) {
                     if (build.boots != null) {
@@ -1490,7 +1505,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "cape"
-                        itemPool = er.getEquipmentsByTypeAndLevel(132, stats.level)
+                       // itemPool = er.getEquipmentsByTypeAndLevel(132, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(132, selectedRanges)
                     }
                 ) {
                     if (build.cape != null) {
@@ -1515,7 +1531,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "epaulettes"
-                        itemPool = er.getEquipmentsByTypeAndLevel(138, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(138, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(138, selectedRanges)
                     }
                 ) {
                     if (build.epaulettes != null) {
@@ -1540,7 +1557,8 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "belt"
-                        itemPool = er.getEquipmentsByTypeAndLevel(133, stats.level)
+                        //itemPool = er.getEquipmentsByTypeAndLevel(133, stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(133, selectedRanges)
                     }
                 ) {
                     if (build.belt != null) {
@@ -1565,7 +1583,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "first_weapon"
-                        itemPool = er.getEquipmentsByTypesAndLevel(listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254), stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254), selectedRanges)
                     }
                 ) {
                     if (build.first_weapon != null) {
@@ -1590,7 +1608,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "second_weapon"
-                        itemPool = er.getEquipmentsByTypesAndLevel(listOf(112, 189), stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(listOf(112, 189), selectedRanges)
                     }
                 ) {
                     if (build.second_weapon != null) {
@@ -1615,7 +1633,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "emblem"
-                        itemPool = er.getEquipmentsByTypesAndLevel(listOf(537, 646), stats.level)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(listOf(537, 646), selectedRanges)
                     }
                 ) {
                     if (build.emblem != null) {
@@ -1794,18 +1812,18 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                         }
                     }
                 }
-                Column (
-                    modifier = Modifier.fillMaxHeight()
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
                         .width(220.dp)
                         .background(color = panelColor, shape = RoundedCornerShape(10.dp))
                         .padding(10.dp),
                 ) {
-                    Row (
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                         verticalAlignment = Alignment.CenterVertically
-                    ){
-
+                    ) {
                         Text(
                             text = "Rangos de niveles:",
                             modifier = Modifier
@@ -1813,6 +1831,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     }
 
                     val levelRanges = listOf(
+                        "Todos",  // Añadido "Todos" al principio
                         "0 - 5", "6 - 20",
                         "21 - 35", "36 - 50",
                         "51 - 65", "66 - 80",
@@ -1821,13 +1840,12 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                         "141 - 155", "156 - 170",
                         "171 - 185", "186 - 200",
                         "201 - 215", "216 - 230",
-                        "231 - 245"
+                        "231 - 245", ""  // Añadido elemento vacío para hacer par
                     )
 
-
-
                     Box(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(vertical = 4.dp)
                     ) {
                         LazyVerticalGrid(
@@ -1837,35 +1855,51 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(levelRanges) { range ->
-                                val isSelected = selectedRanges.contains(range)
-                                Button(
-                                    onClick = {
-                                        selectedRanges = if (isSelected) {
-                                            selectedRanges - range
-                                        } else {
-                                            selectedRanges + range
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .width(85.dp)
-                                        .height(24.dp),
-                                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = if (isSelected) {
-                                            Color(171, 214, 250) // Color principal cuando está seleccionado
-                                        } else {
-                                            Color(170, 196,230) // Color más claro cuando no está seleccionado
-                                        }
-                                    ),
-                                    shape = RoundedCornerShape(2.dp)
-                                ) {
-                                    Text(
-                                        text = range,
-                                        fontSize = 10.sp,
-                                        maxLines = 1,
-                                        textAlign = TextAlign.Center,
-                                        color = Color.Black.copy(alpha = if (isSelected) 1f else 0.7f)
-                                    )
+                                if (range.isNotEmpty()) {  // Solo mostrar botón si el range no está vacío
+                                    val isAllButton = range == "Todos"
+                                    val isSelected = if (isAllButton) {
+                                        selectedRanges.size == levelRanges.size - 2  // -2 por "Todos" y el elemento vacío
+                                    } else {
+                                        selectedRanges.contains(range)
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            if (isAllButton) {
+                                                selectedRanges = if (selectedRanges.size == levelRanges.size - 2) {
+                                                    emptySet()
+                                                } else {
+                                                    levelRanges.filter { it != "Todos" && it.isNotEmpty() }.toSet()
+                                                }
+                                            } else {
+                                                selectedRanges = if (isSelected) {
+                                                    selectedRanges - range
+                                                } else {
+                                                    selectedRanges + range
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .width(85.dp)
+                                            .height(24.dp),
+                                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = if (isSelected) {
+                                                Color(171, 214, 250)
+                                            } else {
+                                                Color(170, 196, 230)
+                                            }
+                                        ),
+                                        shape = RoundedCornerShape(2.dp)
+                                    ) {
+                                        Text(
+                                            text = range,
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            textAlign = TextAlign.Center,
+                                            color = Color.Black.copy(alpha = if (isSelected) 1f else 0.7f)
+                                        )
+                                    }
                                 }
                             }
                         }
