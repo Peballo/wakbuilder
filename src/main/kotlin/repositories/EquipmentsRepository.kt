@@ -106,63 +106,65 @@ class EquipmentsRepository (
 
     fun getEquipmentsByTypeAndMultipleLevelRange(
         type: Int,
-        selectedRanges: Set<String>
+        selectedRanges: Set<String>,
+        selectedRarities: Set<Int> = setOf()
     ): List<ResultRow> {
-        return getEquipmentsByTypeAndMultipleLevelRange(listOf(type), selectedRanges)
+        return getEquipmentsByTypeAndMultipleLevelRange(listOf(type), selectedRanges, selectedRarities)
     }
 
     fun getEquipmentsByTypeAndMultipleLevelRange(
-        types: List<Int>,  // Cambiado de Int a List<Int>
-        selectedRanges: Set<String>
+        types: List<Int>,
+        selectedRanges: Set<String>,
+        selectedRarities: Set<Int> = setOf()
     ): List<ResultRow> {
 
-        if (selectedRanges.contains("") ) {
-            return transaction {
-                SchemaUtils.create(Equipments)
+        // Primero, limpiamos los rangos vacíos
+        val cleanRanges = selectedRanges.filter { it.isNotEmpty() }.toSet()
 
-                Equipments.selectAll()
-                    .andWhere {
-                        if (types.size == 1) {
-                            Equipments.item_type eq types.first()
-                        } else {
-                            Equipments.item_type inList types
-                        }
-                    }
-                    .orderBy(Equipments.id to SortOrder.DESC)
-                    .toList()
+        // Si no hay rangos después de limpiar, retornar todos los items del tipo especificado
+        if (cleanRanges.isEmpty()) {
+            return transaction {
+                var query = Equipments.selectAll()
+                    .andWhere { Equipments.item_type inList types }
+
+                if (selectedRarities.isNotEmpty()) {
+                    query = query.andWhere { Equipments.rarity inList selectedRarities }
+                }
+
+                query.orderBy(Equipments.id to SortOrder.DESC).toList()
             }
         }
 
-
-        // Convertir los rangos de String a pares de números
-        val ranges = selectedRanges.map { rangeStr ->
-            val levels = rangeStr.split("-").map { it.trim().toInt() }
-            Pair(levels[0], levels[1])
+        // Procesar los rangos de nivel
+        val levelRanges = cleanRanges.mapNotNull { range ->
+            try {
+                val (min, max) = range.split("-")
+                    .map { it.trim().toInt() }
+                if (min <= max) min to max else null
+            } catch (e: Exception) {
+                println("Debug - Error processing range: $range")
+                null
+            }
         }
 
         return transaction {
-            SchemaUtils.create(Equipments)
-            val conditions = ranges.map { (min, max) ->
-                (Equipments.level greaterEq min) and (Equipments.level lessEq max)
+            var query = Equipments.selectAll()
+                .andWhere { Equipments.item_type inList types }
+
+            // Filtrar por nivel
+            if (levelRanges.isNotEmpty()) {
+                val levelConditions = levelRanges.map { (min, max) ->
+                    (Equipments.level greaterEq min) and (Equipments.level lessEq max)
+                }
+                query = query.andWhere { levelConditions.reduce { acc, condition -> acc or condition } }
             }
 
-            Equipments.selectAll()
-                .andWhere {
-                    if (types.size == 1) {
-                        Equipments.item_type eq types.first()
-                    } else {
-                        Equipments.item_type inList types
-                    }
-                }
-                .andWhere {
-                    if (conditions.isNotEmpty()) {
-                        conditions.reduce { acc, op -> acc or op }
-                    } else {
-                        Op.build { Equipments.id eq -1 }
-                    }
-                }
-                .orderBy(Equipments.id to SortOrder.DESC)
-                .toList()
+            // Filtrar por rareza
+            if (selectedRarities.isNotEmpty()) {
+                query = query.andWhere { Equipments.rarity inList selectedRarities }
+            }
+
+            query.orderBy(Equipments.id to SortOrder.DESC).toList()
         }
     }
 }

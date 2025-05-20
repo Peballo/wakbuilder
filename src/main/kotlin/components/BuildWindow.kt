@@ -39,6 +39,7 @@ import itemSprite
 import itemTypeSprite
 import org.jetbrains.exposed.sql.ResultRow
 import parseEffect
+import parseEquipmentToItemType
 import rarityColors
 import raritySprite
 import secondParam
@@ -99,6 +100,12 @@ data class CharacterStats(
     var wisdom: Int = 0,
     var character: String = "sacrier",
     var hp: Int = 0
+)
+
+data class Rarity(
+    val id: Int,
+    val name: String,
+    val imageUrl: String
 )
 
 fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>): CharacterStats {
@@ -327,6 +334,7 @@ fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: Lis
                             newStats = newStats.copy(fireR = newStats.fireR + firstP, earthR = newStats.earthR + firstP, waterR = newStats.waterR + firstP)
                         }
                     }
+
                     else -> {
 
                     }
@@ -367,9 +375,9 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
     Button(
 
         modifier = Modifier.fillMaxSize()
-            .defaultMinSize(minHeight = 330.dp)
+            .defaultMinSize(minHeight = 360.dp)
             .fillMaxWidth()
-            .height(330.dp),
+            .height(360.dp),
         colors = ButtonDefaults.buttonColors(Color(171, 214, 250)),
         shape = RoundedCornerShape(8.dp),
         onClick = { onClick(item) }
@@ -388,6 +396,7 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
                     modifier = Modifier.padding(8.dp).background(Color(150, 190,250), RoundedCornerShape(8.dp))
                 ) {
                     AsyncImage (
+                        modifier = Modifier.size(60.dp),
                         model = itemSprite(item[Equipments.sprite_id]),
                         contentDescription = "sprite"
                     )
@@ -457,6 +466,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
     var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
     var selectedRanges by remember { mutableStateOf(setOf("")) }
+    var selectedRarities by remember { mutableStateOf(setOf<Int>()) }
 
     var selectedClass by remember {
         mutableStateOf(
@@ -1346,7 +1356,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "helmet"
                         //itemPool = er.getEquipmentsByTypeAndLevel(134, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(134, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(134, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.helmet != null) {
@@ -1373,7 +1383,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "neck"
 //                        itemPool = er.getEquipmentsByTypeAndLevel(120, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(120, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(120, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.neck != null) {
@@ -1400,7 +1410,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "chest"
                         //itemPool = er.getEquipmentsByTypeAndLevel(136, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(136, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(136, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.chest != null) {
@@ -1427,7 +1437,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "left_ring"
                         //itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.left_ring != null) {
@@ -1454,7 +1464,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "right_ring"
                         //itemPool = er.getEquipmentsByTypeAndLevel(103, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(103, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.right_ring != null) {
@@ -1480,7 +1490,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "boots"
                         //itemPool = er.getEquipmentsByTypeAndLevel(119, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(119, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(119, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.boots != null) {
@@ -1506,7 +1516,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "cape"
                        // itemPool = er.getEquipmentsByTypeAndLevel(132, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(132, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(132, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.cape != null) {
@@ -1532,7 +1542,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "epaulettes"
                         //itemPool = er.getEquipmentsByTypeAndLevel(138, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(138, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(138, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.epaulettes != null) {
@@ -1558,7 +1568,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     onClick = {
                         lastClickedBuildPart = "belt"
                         //itemPool = er.getEquipmentsByTypeAndLevel(133, stats.level)
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(133, selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(133, selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.belt != null) {
@@ -1583,7 +1593,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     colors = ButtonDefaults.buttonColors(backgroundColor = statPillColor),
                     onClick = {
                         lastClickedBuildPart = "first_weapon"
-                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254), selectedRanges)
+                        itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254), selectedRanges, selectedRarities)
                     }
                 ) {
                     if (build.first_weapon != null) {
@@ -1840,7 +1850,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                         "141 - 155", "156 - 170",
                         "171 - 185", "186 - 200",
                         "201 - 215", "216 - 230",
-                        "231 - 245", ""  // Añadido elemento vacío para hacer par
+                        "231 - 245"
                     )
 
                     Box(
@@ -1878,6 +1888,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                                                     selectedRanges + range
                                                 }
                                             }
+                                            if (lastClickedBuildPart.isNotEmpty()) {itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(parseEquipmentToItemType(lastClickedBuildPart), selectedRanges, selectedRarities) }
                                         },
                                         modifier = Modifier
                                             .width(85.dp)
@@ -1901,6 +1912,66 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                                         )
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    val rarities = listOf(
+                        Rarity(1, "Común", "https://tmktahu.github.io/WakfuAssets/rarities/1.png"),
+                        Rarity(2, "Raro", "https://tmktahu.github.io/WakfuAssets/rarities/2.png"),
+                        Rarity(3, "Mítico", "https://tmktahu.github.io/WakfuAssets/rarities/3.png"),
+                        Rarity(4, "Legendario", "https://tmktahu.github.io/WakfuAssets/rarities/4.png"),
+                        Rarity(5, "Reliquia", "https://tmktahu.github.io/WakfuAssets/rarities/5.png"),
+                        Rarity(6, "Recuerdo", "https://tmktahu.github.io/WakfuAssets/rarities/6.png"),
+                        Rarity(7, "Épico", "https://tmktahu.github.io/WakfuAssets/rarities/7.png")
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Rarezas:",
+                            modifier = Modifier
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp), // Reducido el padding vertical
+                        horizontalArrangement = Arrangement.spacedBy(4.dp), // Reducido el espacio entre botones
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        rarities.forEach { rarity ->
+                            Button(
+                                onClick = {
+                                    selectedRarities = if (rarity.id in selectedRarities) {
+                                        selectedRarities - rarity.id
+                                    } else {
+                                        selectedRarities + rarity.id
+                                    }
+                                    if (lastClickedBuildPart.isNotEmpty()) {itemPool = er.getEquipmentsByTypeAndMultipleLevelRange(parseEquipmentToItemType(lastClickedBuildPart), selectedRanges, selectedRarities) }
+                                },
+                                modifier = Modifier
+                                    .height(24.dp) // Reducido de 32dp a 24dp
+                                    .width(24.dp), // Reducido de 32dp a 24dp
+                                contentPadding = PaddingValues(2.dp), // Reducido el padding interno
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = if (rarity.id in selectedRarities) {
+                                        Color(171, 214, 250)
+                                    } else {
+                                        Color(170, 196, 230)
+                                    }
+                                ),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                AsyncImage(
+                                    model = rarity.imageUrl,
+                                    contentDescription = rarity.name,
+                                    contentScale = ContentScale.Crop,
+                                    alignment = Alignment.Center
+                                )
                             }
                         }
                     }

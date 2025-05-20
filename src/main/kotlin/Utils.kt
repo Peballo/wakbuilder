@@ -109,6 +109,23 @@ fun rarityColors(rarity: Int): Color {
 
 }
 
+fun parseEquipmentToItemType(equipment : String) : List<Int> {
+    return when (equipment) {
+        "helmet" -> listOf(134)
+        "neck" -> listOf(120)
+        "chest" -> listOf(136)
+        "left_ring", "right_ring" -> listOf(103)
+        "boots" -> listOf(119)
+        "cape" -> listOf(132)
+        "epaulettes" -> listOf(138)
+        "belt" -> listOf(133)
+        "first_weapon" -> listOf(101, 108, 110, 111, 113, 114, 115, 117, 223, 253, 254)
+        "second_weapon" -> listOf(112, 189)
+        "emblem" -> listOf(537, 646)
+        else -> listOf()
+    }
+}
+
 fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>): String {
 
     var result = "Not found"
@@ -126,6 +143,13 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
                 if (state != null) {
                     return state[States.name_es]
                 }
+            }
+            39 -> {
+                result = "${floor(firstParam(params, level).toDouble()).toInt()}% de armadura recibida"
+            }
+            2001 -> {
+                var job = jobs.find { j -> j[Jobs.id] == params[2].toInt() }
+                result = "${floor(firstParam(params, level).toDouble()).toInt()}% cantidad de recolección en ${job?.get(Jobs.name_es)}"
             }
             39 -> println("Algo raro")
             2001 -> println("Profesión")
