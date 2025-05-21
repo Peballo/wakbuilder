@@ -1,13 +1,8 @@
 package components
 
-import repositories.ActionsRepository
 import CharacterClass
-import repositories.EffectsRepository
 import Equipments
-import repositories.EquipmentsRepository
 import FixedGridImageSelector
-import repositories.JobsRepository
-import repositories.StatesRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,11 +32,13 @@ import coil3.compose.AsyncImage
 import firstParam
 import itemSprite
 import itemTypeSprite
+import objects.Accounts
 import org.jetbrains.exposed.sql.ResultRow
 import parseEffect
 import parseEquipmentToItemType
 import rarityColors
 import raritySprite
+import repositories.*
 import secondParam
 import statSprite
 import kotlin.reflect.full.memberProperties
@@ -64,6 +61,9 @@ data class BuildItemsList (
 )
 
 data class CharacterStats(
+    var code: String = "",
+    var name: String = "",
+    var account: Int = -1,
     var level: Int = 1,
     var ap: Int = 0,
     var mp: Int = 0,
@@ -108,8 +108,8 @@ data class Rarity(
     val imageUrl: String
 )
 
-fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>): CharacterStats {
-    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1, character = stats.character)
+fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>, br: BuildsRepository): CharacterStats {
+    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1, code = stats.code, name = stats.name, character = stats.character, account = stats.account )
 
     BuildItemsList::class.memberProperties.forEach { prop ->
         val item = prop.get(build) as ResultRow?
@@ -342,7 +342,7 @@ fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: Lis
             }
         }
     }
-
+    br.updateBuild(stats, build)
     return newStats
 }
 
@@ -439,7 +439,7 @@ fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<Resul
 
 
 @Composable
-fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
+fun BuildWindow(account: ResultRow?,buildCode: String, buildName: String, buildLevel: Int, selected_Class: CharacterClass, onRouteChanged: (String) -> Unit) {
 
     // Repositories AIVEN
     val er = EquipmentsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
@@ -447,6 +447,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
     val efr = EffectsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
     val sr = StatesRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
     val jr = JobsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    val br = BuildsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
 
     val actions by remember { mutableStateOf(ar.getAllActions()) }
     val effects by remember { mutableStateOf(efr.getAllEffects()) }
@@ -462,20 +463,14 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
 
     // States
     var itemPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
+    val accountId = if (account != null) account[Accounts.id].value else -1
     var build by remember { mutableStateOf(BuildItemsList()) }
-    var stats by remember { mutableStateOf(CharacterStats(hp=60, ap=6, mp=3, wp=6, criticalChance=3, control=1)) }
+    var stats by remember { mutableStateOf(CharacterStats(level = buildLevel, hp= buildLevel*10+50, ap=6, mp=3, wp=6, criticalChance=3, control=1, character = selected_Class.className, code = buildCode, account = accountId, name = buildName)) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
     var selectedRanges by remember { mutableStateOf(setOf("")) }
     var selectedRarities by remember { mutableStateOf(setOf<Int>()) }
 
-    var selectedClass by remember {
-        mutableStateOf(
-            CharacterClass(
-                "https://raw.githubusercontent.com/Tmktahu/WakfuAssets/refs/heads/main/classes/sacrier.png",
-                "Sacrier"
-            )
-        )
-    }
+    var selectedClass by remember { mutableStateOf( selected_Class) }
 
     Row (
         modifier = Modifier.fillMaxSize(),
@@ -503,17 +498,12 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                     )
 
                     Column {
-                        Text("Visama", fontSize = 24.sp, fontWeight = FontWeight.Medium)
+                        Text(stats.name, fontSize = 24.sp, fontWeight = FontWeight.Medium)
                         TextField(
                             value = "${stats.level}",
-                            onValueChange = { stats = stats.copy(level = checkLevelInput( it));stats = calculateStats(stats, build, effects) },
+                            onValueChange = { stats = stats.copy(level = checkLevelInput( it));stats = calculateStats(stats, build, effects, br) },
                             label = { Text("Nivel") },
                             colors = TextFieldDefaults.textFieldColors(backgroundColor = statPillColor),
-                            keyboardActions = KeyboardActions(
-                            onDone = {
-                                calculateStats(stats, build, effects)
-                            }
-                            )
                         )
                     }
                 }
@@ -593,7 +583,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                                 model = statSprite("empty_coin"),
                                 contentDescription = "coin"
                             )
-                            if (stats.character == "Hipermago")
+                            if (stats.character == "huppermage")
                                 AsyncImage(
                                     modifier = Modifier.padding(6.dp),
                                     model = statSprite("quadrumental_breeze"),
@@ -607,7 +597,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                                 )
                         }
 
-                        Text("${if (stats.character == "Hipermago") stats.wp * 75 else stats.wp}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("${if (stats.character == "huppermage") stats.wp * 75 else stats.wp}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
                 }
 
@@ -1818,7 +1808,7 @@ fun BuildWindow(account: String,onRouteChanged: (String) -> Unit) {
                                 }
                             }
 
-                            stats = calculateStats(stats, build, effects).copy()
+                            stats = calculateStats(stats, build, effects, br)
                         }
                     }
                 }

@@ -28,75 +28,75 @@ fun FixedGridImageSelector(
     val classes = listOf(
         CharacterClass(
             characterAvatar("sacrier"),
-            "Sacrogrito"
+            "sacrier"
         ),
         CharacterClass(
             characterAvatar("eniripsa"),
-            "Aniripsa"
+            "eniripsa"
         ),
         CharacterClass(
             characterAvatar("cra"),
-            "Ocra"
+            "cra"
         ),
         CharacterClass(
             characterAvatar("osamodas"),
-            "Osamodas"
+            "osamodas"
         ),
         CharacterClass(
             characterAvatar("eliotrope"),
-            "Selotrop"
+            "eliotrope"
         ),
         CharacterClass(
             characterAvatar("masqueraider"),
-            "Zobal"
+            "masqueraider"
         ),
         CharacterClass(
             characterAvatar("sadida"),
-            "Sadida"
+            "sadida"
         ),
         CharacterClass(
             characterAvatar("huppermage"),
-            "Hipermago"
+            "huppermage"
         ),
         CharacterClass(
             characterAvatar("ecaflip"),
-            "Zurcarak"
+            "ecaflip"
         ),
         CharacterClass(
             characterAvatar("ouginak"),
-            "Uginak"
+            "ouginak"
         ),
         CharacterClass(
             characterAvatar("pandawa"),
-            "Pandawa"
+            "pandawa"
         ),
         CharacterClass(
             characterAvatar("sram"),
-            "Sram"
+            "sram"
         ),
         CharacterClass(
             characterAvatar("enutrof"),
-            "Anutrof"
+            "enutrof"
         ),
         CharacterClass(
             characterAvatar("iop"),
-            "Yopuka"
+            "iop"
         ),
         CharacterClass(
             characterAvatar("feca"),
-            "Feca"
+            "feca"
         ),
         CharacterClass(
             characterAvatar("xelor"),
-            "Xelor"
+            "xelor"
         ),
         CharacterClass(
             characterAvatar("rogue"),
-            "Tymador"
+            "rogue"
         ),
         CharacterClass(
             characterAvatar("foggernaut"),
-            "Steamer"
+            "foggernaut"
         ),
         // Forjalanza coming soon
     )

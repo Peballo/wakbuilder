@@ -1,8 +1,6 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Button
-import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,20 +32,26 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.rememberWindowState
 import components.BuildWindow
 import components.MainWindow
+import objects.Accounts
 import org.jetbrains.exposed.sql.ResultRow
 import repositories.AccountsRepository
 
 @Composable
 fun LoginRegisterDialog(
     showDialog: Boolean,
+    ar: AccountsRepository,
     onDismiss: () -> Unit,
-    onLoginRegister: (String, String) -> Unit
+    onLoginRegister: (ResultRow?) -> Unit
 ) {
     val modalBackgroundColor = Color(124, 205, 208)
 
     if (showDialog) {
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
+        var passwordIsCorrect by remember { mutableStateOf(true) }
+        val passwordColor = Color(95, 158,160)
+        val errorColor = Color(240, 0, 100)
+        val panelColor: Color = Color(202, 230, 255)
 
         Dialog (
             onDismissRequest = onDismiss,
@@ -66,10 +69,13 @@ fun LoginRegisterDialog(
 
                     OutlinedTextField(
                         value = username,
-                        onValueChange = { username = it },
+                        onValueChange = { username = it; passwordIsCorrect = true },
                         label = { Text("Usuario") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            unfocusedBorderColor = passwordColor,
+                        ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
@@ -78,11 +84,14 @@ fun LoginRegisterDialog(
 
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = { password = it; passwordIsCorrect = true },
                         label = { Text("Contraseña") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            unfocusedBorderColor = if (passwordIsCorrect) passwordColor else errorColor,
+                        ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
@@ -90,9 +99,19 @@ fun LoginRegisterDialog(
                     )
 
                     Button (
+                        colors = ButtonDefaults.buttonColors(backgroundColor = panelColor),
                         onClick = {
-                            onLoginRegister(username, password)
-                            onDismiss()
+                            if (checkUsername(username, ar)) {
+                                if (checkAccount(username, password, ar)) {
+                                    onLoginRegister(ar.getAccountByName(username))
+                                    onDismiss()
+                                } else {
+                                    passwordIsCorrect = false
+                                }
+                            } else {
+                                onLoginRegister(ar.insertAccount(username, sha256(password)))
+                                onDismiss()
+                            }
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp)
                     ) {
@@ -107,10 +126,16 @@ fun LoginRegisterDialog(
 @Composable
 @Preview
 fun App() {
-
-    var account by remember { mutableStateOf("") }
+    val ar = AccountsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
+    var username by remember { mutableStateOf("") }
+    var account by remember { mutableStateOf<ResultRow?>(null) }
     var route by remember { mutableStateOf("home") }
+    var newBuildCode by remember { mutableStateOf("") }
+    var newBuildName by remember { mutableStateOf("") }
+    var newBuildLevel by remember { mutableStateOf(1) }
+    var newSelectedClass by remember { mutableStateOf(CharacterClass("","")) }
     var showDialog by remember { mutableStateOf(false) }
+    val panelColor: Color = Color(202, 230, 255)
 
     MaterialTheme {
         Box (
@@ -118,23 +143,23 @@ fun App() {
         ) {
             Column (
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Top
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row (
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column() {
                         Text("Wakbuilder", color = Color.White, fontSize = 32.sp)
                     }
 
-                    if (route == "home") {
-                        Column() {
-                            if (account.isNotEmpty()) {
-                                Text(account)
-                            }
-                            else {
+                    Column() {
+                        if (route == "home") {
+                            if (account != null) {
+                                Text(account!![Accounts.username])
+                            } else {
                                 Button(
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = panelColor),
                                     onClick = {
                                         showDialog = true
                                     }
@@ -142,30 +167,45 @@ fun App() {
                                     Text("Account")
                                 }
                             }
-
-                        }
-                    } else if (route == "builder") {
-                        if (account.isNotEmpty()) {
-                            Text(account)
+                        } else if (route == "builder") {
+                            Row (
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                if (account != null) {
+                                    Text(account!![Accounts.username])
+                                }
+                                Button(
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = panelColor),
+                                    onClick = {
+                                        route = "home"
+                                    }
+                                ) {
+                                    Text("Volver")
+                                }
+                            }
                         }
                     }
                 }
 
                 if (route == "home") {
-                    MainWindow(account) {
-                            newRoute -> route = newRoute
+
+                    if (account != null) username = account!![Accounts.username]
+                    MainWindow(username) {
+                            newRoute, buildCode, buildName, buildLevel, selectedClass -> route = newRoute; newBuildCode = buildCode; newBuildName = buildName; newBuildLevel = buildLevel; newSelectedClass = selectedClass
                     }
                 } else if (route == "builder") {
-                    BuildWindow(account) {
+                    BuildWindow(account, newBuildCode, newBuildName, newBuildLevel, newSelectedClass) {
                             newRoute -> route = newRoute
                     }
                 }
 
                 LoginRegisterDialog(
                     showDialog = showDialog,
+                    ar = ar,
                     onDismiss = { showDialog = false },
-                    onLoginRegister = { username, password ->
-                        account = checkAccount(username, password)
+                    onLoginRegister = { user ->
+                        account = user
                     }
                 )
             }

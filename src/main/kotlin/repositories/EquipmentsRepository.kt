@@ -12,23 +12,15 @@ class EquipmentsRepository (
     private val dbUsername: String,
     private val dbPassword: String
 ) {
-    fun getAllEquipments() {
+    init {
         Database.connect(dbUrl, driver, dbUsername, dbPassword)
+    }
 
-        var result: List<ResultRow> = listOf()
-
-        try {
-            transaction {
-                SchemaUtils.create(Equipments)
-                result = Equipments.selectAll().toList()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = listOf()
-        }
+    fun getAllEquipments(): List<ResultRow> {
+        return transaction { Equipments.selectAll().toList() }
     }
 
     fun getEquipmentById(id: Int): ResultRow? {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: ResultRow? = null
 
         try {
@@ -45,7 +37,6 @@ class EquipmentsRepository (
     }
 
     fun getEquipmentsByType(type: Int): List<ResultRow> {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
 
         var result: List<ResultRow> = listOf()
 
@@ -60,7 +51,6 @@ class EquipmentsRepository (
     }
 
     fun getEquipmentsByTypeAndLevel(type: Int, level: Int): List<ResultRow> {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: List<ResultRow> = listOf()
 
 
@@ -74,7 +64,6 @@ class EquipmentsRepository (
     }
 
     fun getEquipmentsByTypesAndLevel(types: List<Int>, level: Int): List<ResultRow> {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: List<ResultRow> = listOf()
 
 
@@ -88,7 +77,6 @@ class EquipmentsRepository (
     }
 
     fun getEquipmentsByTypeAndLevelRange(type: Int, minLevel: Int, maxLevel: Int): List<ResultRow> {
-        Database.connect(dbUrl, driver, dbUsername, dbPassword)
         var result: List<ResultRow> = listOf()
 
         transaction {
@@ -101,6 +89,12 @@ class EquipmentsRepository (
         }
 
         return result
+    }
+
+    fun getSpriteIdById(id: Int): Int {
+        return transaction {
+            Equipments.selectAll().where { Equipments.id eq id}.first()[Equipments.sprite_id]
+        }
     }
 
 

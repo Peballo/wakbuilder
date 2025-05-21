@@ -86,13 +86,19 @@ fun detectFirstCondition(desc: String): String {
 
 fun checkLevelInput(levelLabel: String): Int {
     // Check if levelLabel has any symbol that isn't a number
-    val level: Int = levelLabel.toIntOrNull() ?: 0
+    val pattern = Regex("^\\d+$")
 
-    return if (level >= 1 && level <= 245) level
-    else {
-        if (level <= 0) 1
-        else 245
+    if (levelLabel.isEmpty()) return 1
+    if (levelLabel.matches(pattern)) {
+        val level: Int = levelLabel.toInt()
+        return if (level in 1..245) level
+        else {
+            if (level <= 0) 1
+            else 245
+        }
     }
+
+    return 1
 }
 
 fun rarityColors(rarity: Int): Color {
@@ -212,33 +218,63 @@ fun validateSha256(foundPassword: String, enteredPassword: String): Boolean {
     return calculatedHash.equals(foundPassword, ignoreCase = true)
 }
 
-fun createAccount(user: String, pass: String, ar: AccountsRepository): Int {
-    return ar.insertAccount(user, pass)
+fun checkUsername(user: String, ar: AccountsRepository): Boolean {
+    val account = ar.getAccountByName(user)
+    println("checkUsername: $account")
+
+    return account != null
 }
 
-fun checkAccount(user: String, password: String): String {
-    val ar = AccountsRepository(
-        dbUrl = envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"),
-        driver = "org.postgresql.Driver",
-        dbUsername = envReader.getOrDefault("DB_USER", "postgres"),
-        dbPassword = envReader.getOrDefault("DB_PASSWORD", "1234"))
-
+fun checkAccount(user: String, password: String, ar: AccountsRepository): Boolean {
     val account = ar.getAccountByName(user)
 
-    return when {
-        account != null -> {
-            val storedHash = account[Accounts.password]
-            if (validateSha256(storedHash, password)) user
-            else ""
-        }
+    if (account != null) {
+        if (validateSha256(account[Accounts.password], password)) return true
+    }
+
+    return false
+}
+
+/**
+ * Crea un código para la build que no exista en otra build
+ */
+fun generarCodigo(): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    var code = (1..5).map { chars.random() }.joinToString("")
+    if (checkBuildCode(code)) {
+        code = (1..5).map { chars.random() }.joinToString("")
+    }
+
+    return code
+}
+
+/**
+ * Comprueba si ya existe una build con ese código. Devuelve TRUE en caso de que sí, FALSE en caso de no existir
+ */
+fun checkBuildCode(code: String): Boolean {
+
+    return false
+}
+
+fun getSpriteHolderByName(name: String): String {
+    return when (name) {
+        "helmet" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/HEAD.png"
+        "neck" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/NECK.png"
+        "chest" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/CHEST.png"
+        "left_ring" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/LEFT_HAND.png"
+        "right_ring" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/RIGHT_HAND.png"
+        "boots" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/LEGS.png"
+        "cape" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/BACK.png"
+        "epaulettes" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/SHOULDERS.png"
+        "belt" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/BELT.png"
+        "mount" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/MOUNT.png"
+        "pet" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/PET.png"
+        "emblem" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/ACCESSORY.png"
+        "first_weapon" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/FIRST_WEAPON.png"
+        "second_weapon" -> "https://tmktahu.github.io/WakfuAssets/equipmentDefaults/SECOND_WEAPON.png"
+
         else -> {
-            try {
-                val id = createAccount(user, sha256(password), ar)
-                if (id >= 0) user else ""
-            } catch (e: Exception) {
-                println("ERROR CREATING ACCOUNT: ${e.message}")
-                ""
-            }
+            return ""
         }
     }
 }

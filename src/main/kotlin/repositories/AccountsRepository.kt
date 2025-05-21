@@ -25,7 +25,7 @@ class AccountsRepository (
         }
     }
 
-    fun insertAccount(name: String, pass: String): Int {
+    fun insertAccount(name: String, pass: String): ResultRow {
         return transaction {
             SchemaUtils.create(Accounts)
 
@@ -35,7 +35,8 @@ class AccountsRepository (
             } get Accounts.id
 
             commit()
-            id.value
+
+            Accounts.selectAll().where {Accounts.id eq id.value}.first()
         }
     }
 }
