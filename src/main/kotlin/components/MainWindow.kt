@@ -340,8 +340,7 @@ fun MainWindow(account: String, onRouteChange: (String, String, String, Int, Cha
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(backgroundColor = panelColor),
                     onClick = {
-                        // TODO: SEND DEFAULT PARAMS TO BUILD
-                        var cod = generarCodigo()
+                        var cod = generarCodigo(br)
                         if (buildName.isNotEmpty()) {
                             var userId = -1
 

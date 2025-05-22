@@ -1,5 +1,6 @@
 package repositories
 
+import Builds
 import components.BuildItemsList
 import components.CharacterStats
 import org.jetbrains.exposed.sql.*
@@ -18,6 +19,12 @@ class BuildsRepository (
             user = dbUsername,
             password = dbPassword
         )
+    }
+
+    fun getBuildByCode(code: String): ResultRow? {
+        return transaction {
+            Builds.selectAll().where{Builds.id eq code}.singleOrNull()
+        }
     }
 
     fun getAllBuilds(): List<ResultRow> {

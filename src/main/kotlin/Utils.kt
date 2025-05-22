@@ -2,6 +2,7 @@ import androidx.compose.ui.graphics.Color
 import objects.Accounts
 import org.jetbrains.exposed.sql.ResultRow
 import repositories.AccountsRepository
+import repositories.BuildsRepository
 import java.io.File
 import java.security.MessageDigest
 import kotlin.math.floor
@@ -157,8 +158,6 @@ fun parseEffect(effect: ResultRow, level: Int, actions: List<ResultRow>, states:
                 var job = jobs.find { j -> j[Jobs.id] == params[2].toInt() }
                 result = "${floor(firstParam(params, level).toDouble()).toInt()}% cantidad de recolección en ${job?.get(Jobs.name_es)}"
             }
-            39 -> println("Algo raro")
-            2001 -> println("Profesión")
             else -> {
                 var desc: String = action[Actions.desc_es]
 
@@ -238,10 +237,10 @@ fun checkAccount(user: String, password: String, ar: AccountsRepository): Boolea
 /**
  * Crea un código para la build que no exista en otra build
  */
-fun generarCodigo(): String {
+fun generarCodigo(br: BuildsRepository): String {
     val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     var code = (1..5).map { chars.random() }.joinToString("")
-    if (checkBuildCode(code)) {
+    while (checkBuildCode(code, br)) {
         code = (1..5).map { chars.random() }.joinToString("")
     }
 
@@ -251,9 +250,9 @@ fun generarCodigo(): String {
 /**
  * Comprueba si ya existe una build con ese código. Devuelve TRUE en caso de que sí, FALSE en caso de no existir
  */
-fun checkBuildCode(code: String): Boolean {
+fun checkBuildCode(code: String, br: BuildsRepository): Boolean {
 
-    return false
+    return br.getBuildByCode(code) != null
 }
 
 fun getSpriteHolderByName(name: String): String {
