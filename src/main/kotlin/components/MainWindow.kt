@@ -47,7 +47,7 @@ import repositories.BuildsRepository
 import repositories.EquipmentsRepository
 
 @Composable
-fun MainWindow(account: String, onRouteChange: (String, String, String, Int, CharacterClass) -> Unit) {
+fun MainWindow(account: String, onRouteChange: (String, String) -> Unit) {
     val br = BuildsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
     val ar = AccountsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
     val er = EquipmentsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
@@ -59,6 +59,7 @@ fun MainWindow(account: String, onRouteChange: (String, String, String, Int, Cha
     val buildColor = Color(0, 0,0)
     val errorColor = Color(240, 0, 100)
 
+    var cod by remember { mutableStateOf(generarCodigo(br)) }
     var selectedClass by remember {
         mutableStateOf(CharacterClass(characterAvatar("sacrier"), "sacrier"))
     }
@@ -114,7 +115,7 @@ fun MainWindow(account: String, onRouteChange: (String, String, String, Int, Cha
                     Button (
                         modifier = Modifier.height(80.dp).fillMaxWidth(),
                         onClick = {
-
+                            onRouteChange("builder", it[Builds.id])
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = panelColor)
                     ) {
@@ -340,7 +341,6 @@ fun MainWindow(account: String, onRouteChange: (String, String, String, Int, Cha
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(backgroundColor = panelColor),
                     onClick = {
-                        var cod = generarCodigo(br)
                         if (buildName.isNotEmpty()) {
                             var userId = -1
 
@@ -349,7 +349,7 @@ fun MainWindow(account: String, onRouteChange: (String, String, String, Int, Cha
                             }
 
                             br.insertBuild(cod, buildName, buildLevel, selectedClass.className, userId )
-                            onRouteChange("builder", cod, buildName, buildLevel, selectedClass)
+                            onRouteChange("builder", cod)
                         } else {
                             buildNameIsCorrect = false
                         }

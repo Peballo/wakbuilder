@@ -21,19 +21,10 @@ class EquipmentsRepository (
     }
 
     fun getEquipmentById(id: Int): ResultRow? {
-        var result: ResultRow? = null
-
-        try {
-            transaction {
-                SchemaUtils.create(Equipments)
-
-                result = Equipments.selectAll().where { Equipments.id eq id }.first()
-            }
-        } catch (nsee: NoSuchElementException) {
-            result = null
+        return transaction {
+            SchemaUtils.create(Equipments)
+            Equipments.selectAll().where { Equipments.id eq id }.singleOrNull()
         }
-
-        return result
     }
 
     fun getEquipmentsByType(type: Int): List<ResultRow> {

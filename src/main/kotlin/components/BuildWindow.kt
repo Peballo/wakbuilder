@@ -1,8 +1,10 @@
 package components
 
-import CharacterClass
+import BuildItemsList
+import CharacterStats
 import Equipments
 import FixedGridImageSelector
+import Rarity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -19,426 +21,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import checkLevelInput
 import coil3.compose.AsyncImage
-import firstParam
+import getCharacterClassByName
 import itemSprite
-import itemTypeSprite
-import objects.Accounts
+import calculateStats
 import org.jetbrains.exposed.sql.ResultRow
-import parseEffect
 import parseEquipmentToItemType
-import rarityColors
-import raritySprite
 import repositories.*
-import secondParam
 import statSprite
-import kotlin.reflect.full.memberProperties
-
-data class BuildItemsList (
-    var helmet: ResultRow? = null,
-    var neck: ResultRow? = null,
-    var chest: ResultRow? = null,
-    var left_ring: ResultRow? = null,
-    var right_ring: ResultRow? = null,
-    var boots: ResultRow? = null,
-    var cape: ResultRow? = null,
-    var epaulettes: ResultRow? = null,
-    var belt: ResultRow? = null,
-    var first_weapon: ResultRow? = null,
-    var second_weapon: ResultRow? = null,
-    var mount: ResultRow? = null,
-    var pet: ResultRow? = null,
-    var emblem: ResultRow? = null
-)
-
-data class CharacterStats(
-    var code: String = "",
-    var name: String = "",
-    var account: Int = -1,
-    var level: Int = 1,
-    var ap: Int = 0,
-    var mp: Int = 0,
-    var wp: Int = 0,
-    var fireA: Int = 0,
-    var fireR: Int = 0,
-    var earthA: Int = 0,
-    var earthR: Int = 0,
-    var waterA: Int = 0,
-    var waterR: Int = 0,
-    var airA: Int = 0,
-    var airR: Int = 0,
-    var melee: Int = 0,
-    var distance: Int = 0,
-    var critical: Int = 0,
-    var rear: Int = 0,
-    var berserk: Int = 0,
-    var healing: Int = 0,
-    var givenArmour: Int = 0,
-    var receivedArmour: Int = 0,
-    var criticalResistance: Int = 0,
-    var rearResistance: Int = 0,
-    var inflictedDmg: Int = 0,
-    var criticalChance: Int = 0,
-    var heals: Int = 0,
-    var block: Int = 0,
-    var initiative: Int = 0,
-    var lock: Int = 0,
-    var dodge: Int = 0,
-    var will: Int = 0,
-    var control: Int = 0,
-    var range: Int = 0,
-    var prospection: Int = 0,
-    var wisdom: Int = 0,
-    var character: String = "sacrier",
-    var hp: Int = 0
-)
-
-data class Rarity(
-    val id: Int,
-    val name: String,
-    val imageUrl: String
-)
-
-fun calculateStats(stats: CharacterStats, build: BuildItemsList, allEffects: List<ResultRow>, br: BuildsRepository): CharacterStats {
-    var newStats: CharacterStats = CharacterStats(level = stats.level, hp = stats.level*10+50, ap = 6, mp = 3, wp = 6, criticalChance = 3, control = 1, code = stats.code, name = stats.name, character = stats.character, account = stats.account )
-
-    BuildItemsList::class.memberProperties.forEach { prop ->
-        val item = prop.get(build) as ResultRow?
-
-        if (item != null) {
-            println(item[Equipments.name_es])
-            var effects = allEffects.filter { e -> e[Effects.id] in item[Equipments.effects]}
-
-            for (effect in effects) {
-                var params = effect[Effects.params]
-                var level = item[Equipments.level]
-
-                var firstP = 0
-                var secondP = 0
-
-                if (params.isNotEmpty()) {
-                    firstP = firstParam(params, level)
-                }
-
-                if (params.size > 2) {
-                    secondP = secondParam(params, level)
-                }
-
-                when (effect[Effects.action]) {
-                    20 -> {
-                        println(firstP)
-                        newStats = newStats.copy(hp = newStats.hp + firstP)
-                    }
-                    21 -> {
-                        newStats = newStats.copy(hp = newStats.hp - firstP)
-                    }
-                    26 -> {
-                        newStats = newStats.copy(healing = newStats.healing + firstP)
-                    }
-                    31 -> {
-                        newStats = newStats.copy(ap = newStats.ap + firstP)
-                    }
-                    41 -> {
-                        newStats = newStats.copy(mp = newStats.mp + firstP)
-                    }
-                    56 -> {
-                        newStats = newStats.copy(ap = newStats.ap - firstP)
-                    }
-                    57 -> {
-                        newStats = newStats.copy(mp = newStats.mp - firstP)
-                    }
-                    71 -> {
-                        newStats = newStats.copy(rearResistance = newStats.rearResistance + firstP)
-                    }
-                    80 -> {
-                        newStats = newStats.copy(
-                            fireR = newStats.fireR + firstP,
-                            earthR = newStats.earthR + firstP,
-                            airR = newStats.airR + firstP,
-                            waterR = newStats.waterR + firstP)
-                    }
-                    82 -> {
-                        newStats = newStats.copy(fireR = newStats.fireR + firstP)
-                    }
-                    83 -> {
-                        newStats = newStats.copy(waterR = newStats.waterR + firstP)
-                    }
-                    84 -> {
-                        newStats = newStats.copy(earthR = newStats.earthR + firstP)
-                    }
-                    85 -> {
-                        newStats = newStats.copy(airR = newStats.airR + firstP)
-                    }
-                    90, 100 -> {
-                        newStats = newStats.copy(
-                            fireR = newStats.fireR - firstP,
-                            earthR = newStats.earthR - firstP,
-                            airR = newStats.airR - firstP,
-                            waterR = newStats.waterR - firstP)
-                    }
-                    97 -> {
-                        newStats = newStats.copy(fireR = newStats.fireR - firstP)
-                    }
-                    98 -> {
-                        newStats = newStats.copy(waterR = newStats.waterR - firstP)
-                    }
-                    96 -> {
-                        newStats = newStats.copy(earthR = newStats.earthR - firstP)
-                    }
-                    120 -> {
-                        newStats = newStats.copy(
-                            fireA = newStats.fireA + firstP,
-                            earthA = newStats.earthA + firstP,
-                            airA = newStats.airA + firstP,
-                            waterA = newStats.waterA + firstP)
-                    }
-                    122 -> {
-                        newStats = newStats.copy(fireA = newStats.fireA + firstP)
-                    }
-                    124 -> {
-                        newStats = newStats.copy(waterA = newStats.waterA + firstP)
-                    }
-                    123 -> {
-                        newStats = newStats.copy(earthA = newStats.earthA + firstP)
-                    }
-                    125 -> {
-                        newStats = newStats.copy(airA = newStats.airA + firstP)
-                    }
-                    130 -> {
-                        newStats = newStats.copy(
-                            fireA = newStats.fireA - firstP,
-                            earthA = newStats.earthA - firstP,
-                            airA = newStats.airA - firstP,
-                            waterA = newStats.waterA - firstP)
-                    }
-                    132 -> {
-                        newStats = newStats.copy(fireA = newStats.fireA - firstP)
-                    }
-                    149 -> {
-                        newStats = newStats.copy(critical = newStats.critical + firstP)
-                    }
-                    150 -> {
-                        newStats = newStats.copy(criticalChance = newStats.criticalChance + firstP)
-                    }
-                    160 -> {
-                        newStats = newStats.copy(range = newStats.range + firstP)
-                    }
-                    161 -> {
-                        newStats = newStats.copy(range = newStats.range - firstP)
-                    }
-                    162 -> {
-                        newStats = newStats.copy(prospection = newStats.prospection + firstP)
-                    }
-                    166 -> {
-                        newStats = newStats.copy(wisdom = newStats.wisdom + firstP)
-                    }
-                    168 -> {
-                        newStats = newStats.copy(criticalChance = newStats.criticalChance - firstP)
-                    }
-                    171 -> {
-                        newStats = newStats.copy(initiative = newStats.initiative + firstP)
-                    }
-                    172 -> {
-                        newStats = newStats.copy(initiative = newStats.initiative - firstP)
-                    }
-                    173 -> {
-                        newStats = newStats.copy(lock = newStats.lock + firstP)
-                    }
-                    174 -> {
-                        newStats = newStats.copy(lock = newStats.lock - firstP)
-                    }
-                    175 -> {
-                        newStats = newStats.copy(dodge = newStats.dodge + firstP)
-                    }
-                    176 -> {
-                        newStats = newStats.copy(dodge = newStats.dodge - firstP)
-                    }
-                    177 -> {
-                        newStats = newStats.copy(will = newStats.will + firstP)
-                    }
-                    180 -> {
-                        newStats = newStats.copy(rear = newStats.rear + firstP)
-                    }
-                    181 -> {
-                        newStats = newStats.copy(rear = newStats.rear - firstP)
-                    }
-                    184 -> {
-                        newStats = newStats.copy(control = newStats.control + firstP)
-                    }
-                    191,193 -> {
-                        newStats = newStats.copy(wp = newStats.wp + firstP)
-                    }
-                    192,194 -> {
-                        newStats = newStats.copy(wp = newStats.wp - firstP)
-                    }
-                    875 -> {
-                        newStats = newStats.copy(block = newStats.block + firstP)
-                    }
-                    876 -> {
-                        newStats = newStats.copy(block = newStats.block - firstP)
-                    }
-                    988 -> {
-                        newStats = newStats.copy(criticalResistance = newStats.criticalResistance + firstP)
-                    }
-                    1052 -> {
-                        newStats = newStats.copy(melee = newStats.melee + firstP)
-                    }
-                    1053 -> {
-                        newStats = newStats.copy(distance = newStats.distance + firstP)
-                    }
-                    1055 -> {
-                        newStats = newStats.copy(berserk = newStats.berserk + firstP)
-                    }
-                    1056 -> {
-                        newStats = newStats.copy(critical = newStats.critical - firstP)
-                    }
-                    1059 -> {
-                        newStats = newStats.copy(melee = newStats.melee - firstP)
-                    }
-                    1060 -> {
-                        newStats = newStats.copy(distance = newStats.distance - firstP)
-                    }
-                    1061 -> {
-                        newStats = newStats.copy(berserk = newStats.berserk - firstP)
-                    }
-                    1062 -> {
-                        newStats = newStats.copy(criticalResistance = newStats.criticalResistance - firstP)
-                    }
-                    1063 -> {
-                        newStats = newStats.copy(rearResistance = newStats.rearResistance - firstP)
-                    }
-                    1068 -> {
-                        if (secondP == 1) {
-                            newStats = newStats.copy(fireA = newStats.fireA + firstP)
-                        } else if (secondP == 2) {
-                            newStats = newStats.copy(fireA = newStats.fireA + firstP, earthA = newStats.earthA + firstP)
-                        } else {
-                            newStats = newStats.copy(fireA = newStats.fireA + firstP, earthA = newStats.earthA + firstP, waterA = newStats.waterA + firstP)
-                        }
-                    }
-                    1069 -> {
-                        if (secondP == 1) {
-                            newStats = newStats.copy(fireR = newStats.fireR + firstP)
-                        } else if (secondP == 2) {
-                            newStats = newStats.copy(fireR = newStats.fireR + firstP, earthR = newStats.earthR + firstP)
-                        } else {
-                            newStats = newStats.copy(fireR = newStats.fireR + firstP, earthR = newStats.earthR + firstP, waterR = newStats.waterR + firstP)
-                        }
-                    }
-
-                    else -> {
-
-                    }
-                }
-            }
-        }
-    }
-    br.updateBuild(stats, build)
-    return newStats
-}
 
 @Composable
-fun EquipmentCell(item: ResultRow, effects: List<ResultRow>, actions: List<ResultRow>, states: List<ResultRow>, jobs: List<ResultRow>, onClick: (ResultRow) -> Unit) {
-    val nameColor: Color = rarityColors(item[Equipments.rarity])
-
-    var effs: List<ResultRow> = emptyList()
-
-    var parsedEffects: List<String> = emptyList()
-
-    for ( effect in item[Equipments.effects]) {
-        var e = effects.find { eff -> eff[Effects.id] == effect }
-
-        if (e != null) {
-            effs = effs.plus(e)
-        }
-    }
-
-    if (effs.isNotEmpty()) {
-        effs.sortedBy {
-            it[Effects.action]
-        }
-
-        for (ef in effs) {
-            parsedEffects = parsedEffects.plus(parseEffect(ef, item[Equipments.level], actions, states, jobs))
-        }
-    }
-
-    Button(
-
-        modifier = Modifier.fillMaxSize()
-            .defaultMinSize(minHeight = 360.dp)
-            .fillMaxWidth()
-            .height(360.dp),
-        colors = ButtonDefaults.buttonColors(Color(171, 214, 250)),
-        shape = RoundedCornerShape(8.dp),
-        onClick = { onClick(item) }
-    ) {
-        Column (
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Name of the item
-            Text(item[Equipments.name_es], fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = nameColor, style = TextStyle(shadow = Shadow(Color.Black, blurRadius = 1f)))
-
-            // Item sprite, level, type and rarity
-            Row (
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box (
-                    modifier = Modifier.padding(8.dp).background(Color(150, 190,250), RoundedCornerShape(8.dp))
-                ) {
-                    AsyncImage (
-                        modifier = Modifier.size(60.dp),
-                        model = itemSprite(item[Equipments.sprite_id]),
-                        contentDescription = "sprite"
-                    )
-                }
-
-                Column (
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("Nivel ${item[Equipments.level]}", fontSize = 16.sp)
-
-                    Row (
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AsyncImage(
-                            modifier = Modifier.size(20.dp),
-                            model = itemTypeSprite(item[Equipments.item_type]),
-                            contentDescription = "type"
-                        )
-                        AsyncImage(
-                            modifier = Modifier.size(20.dp),
-                            model = raritySprite(item[Equipments.rarity]),
-                            contentDescription = "rarity"
-                        )
-                    }
-                }
-            }
-
-            // Item chars
-            Row {
-                Column {
-                    parsedEffects.forEach {
-                        Text(it, fontWeight = FontWeight.Medium, fontSize = 16.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun BuildWindow(account: ResultRow?,buildCode: String, buildName: String, buildLevel: Int, selected_Class: CharacterClass, onRouteChanged: (String) -> Unit) {
+fun BuildWindow(buildCode: String, onRouteChanged: (String) -> Unit) {
 
     // Repositories AIVEN
     val er = EquipmentsRepository(envReader.getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/wakbuilder"), "org.postgresql.Driver", envReader.getOrDefault("DB_USER", "postgres"), envReader.getOrDefault("DB_PASSWORD", "1234"))
@@ -453,23 +52,55 @@ fun BuildWindow(account: ResultRow?,buildCode: String, buildName: String, buildL
     val jobs by remember { mutableStateOf(jr.getAllJobs()) }
     val states by remember { mutableStateOf(sr.getAllStates()) }
 
-
     val lazyGridState = rememberLazyGridState()
 
     // Colors
     val statPillColor: Color = Color(170, 196,230) // The color for the boxes where the HP, AP, MP and WP are
     val panelColor: Color = Color(202, 230, 255) // The color for each big box where data is shown
+    var isBuildLoadedOnce by remember { mutableStateOf(false) }
+    var buildRow by remember { mutableStateOf(br.getBuildByCode(buildCode)) }
 
     // States
     var itemPool: List<ResultRow> by remember { mutableStateOf(emptyList()) }
-    val accountId = if (account != null) account[Accounts.id].value else -1
     var build by remember { mutableStateOf(BuildItemsList()) }
-    var stats by remember { mutableStateOf(CharacterStats(level = buildLevel, hp= buildLevel*10+50, ap=6, mp=3, wp=6, criticalChance=3, control=1, character = selected_Class.className, code = buildCode, account = accountId, name = buildName)) }
+    var selectedClass by remember { mutableStateOf(getCharacterClassByName(buildRow!![Builds.character])) }
+    var stats by remember { mutableStateOf(CharacterStats(level = buildRow!![Builds.level], hp= buildRow!![Builds.level]*10+50, ap=6, mp=3, wp=6, criticalChance=3, control=1, character = selectedClass.className , code = buildCode, account = buildRow!![Builds.user], name = buildRow!![Builds.name])) }
     var lastClickedBuildPart by remember { mutableStateOf("") }
     var selectedRanges by remember { mutableStateOf(setOf("")) }
     var selectedRarities by remember { mutableStateOf(setOf<Int>()) }
 
-    var selectedClass by remember { mutableStateOf( selected_Class) }
+    if (!isBuildLoadedOnce) {
+        isBuildLoadedOnce = true;
+
+        if (buildRow != null) {
+            build = BuildItemsList(
+                helmet = er.getEquipmentById(buildRow!![Builds.helmet]),
+                neck = er.getEquipmentById(buildRow!![Builds.neck]),
+                chest = er.getEquipmentById(buildRow!![Builds.chest]),
+                left_ring = er.getEquipmentById(buildRow!![Builds.left_ring]),
+                right_ring = er.getEquipmentById(buildRow!![Builds.right_ring]),
+                boots = er.getEquipmentById(buildRow!![Builds.boots]),
+                cape = er.getEquipmentById(buildRow!![Builds.cape]),
+                epaulettes = er.getEquipmentById(buildRow!![Builds.epaulettes]),
+                belt = er.getEquipmentById(buildRow!![Builds.belt]),
+                emblem = er.getEquipmentById(buildRow!![Builds.emblem]),
+                first_weapon = er.getEquipmentById(buildRow!![Builds.first_weapon]),
+                second_weapon = er.getEquipmentById(buildRow!![Builds.second_weapon]),
+                mount = er.getEquipmentById(buildRow!![Builds.mount]),
+                pet =  er.getEquipmentById(buildRow!![Builds.pet]),
+            )
+
+            stats = stats.copy(
+                level = buildRow!![Builds.level],
+                character = buildRow!![Builds.character],
+                name = buildRow!![Builds.name],
+                code = buildRow!![Builds.id],
+                account = buildRow!![Builds.user],
+            )
+
+            stats = calculateStats(stats, build, effects, br, true);
+        }
+    }
 
     Row (
         modifier = Modifier.fillMaxSize(),

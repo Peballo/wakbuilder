@@ -22,6 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -32,9 +36,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.rememberWindowState
 import components.BuildWindow
 import components.MainWindow
+import kotlinx.io.files.FileNotFoundException
 import objects.Accounts
 import org.jetbrains.exposed.sql.ResultRow
 import repositories.AccountsRepository
+import javax.imageio.ImageIO
 
 @Composable
 fun LoginRegisterDialog(
@@ -131,9 +137,6 @@ fun App() {
     var account by remember { mutableStateOf<ResultRow?>(null) }
     var route by remember { mutableStateOf("home") }
     var newBuildCode by remember { mutableStateOf("") }
-    var newBuildName by remember { mutableStateOf("") }
-    var newBuildLevel by remember { mutableStateOf(1) }
-    var newSelectedClass by remember { mutableStateOf(CharacterClass("","")) }
     var showDialog by remember { mutableStateOf(false) }
     val panelColor: Color = Color(202, 230, 255)
 
@@ -192,10 +195,10 @@ fun App() {
 
                     if (account != null) username = account!![Accounts.username]
                     MainWindow(username) {
-                            newRoute, buildCode, buildName, buildLevel, selectedClass -> route = newRoute; newBuildCode = buildCode; newBuildName = buildName; newBuildLevel = buildLevel; newSelectedClass = selectedClass
+                            newRoute, buildCode -> route = newRoute; newBuildCode = buildCode
                     }
                 } else if (route == "builder") {
-                    BuildWindow(account, newBuildCode, newBuildName, newBuildLevel, newSelectedClass) {
+                    BuildWindow(newBuildCode) {
                             newRoute -> route = newRoute
                     }
                 }
@@ -216,7 +219,16 @@ fun App() {
 fun main() = application {
     Window(
         state = rememberWindowState(width = 1600.dp, height = 960.dp),
-        onCloseRequest = ::exitApplication
+        onCloseRequest = ::exitApplication,
+        title = "WakBuilder", // Aquí cambias el título
+        icon = try {
+            val resource = {}.javaClass.getResourceAsStream("/icon.png")
+            resource?.let {
+                BitmapPainter(ImageIO.read(it).toComposeImageBitmap())
+            }
+        } catch (e: Exception) {
+            null
+        }
     ) {
         App()
     }

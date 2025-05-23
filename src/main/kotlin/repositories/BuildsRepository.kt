@@ -1,8 +1,8 @@
 package repositories
 
 import Builds
-import components.BuildItemsList
-import components.CharacterStats
+import BuildItemsList
+import CharacterStats
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
